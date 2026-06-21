@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Invoice #{{ invoice.invoice_number }} — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Invoice #{{ invoice.invoice_number }}</h1>
+    <div class="flex gap-2" style="align-items:center;margin-top:4px;">
+      <span class="badge badge-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
+      <span class="text-muted text-sm">{{ invoice.customer.name }}</span>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'invoice-pdf' invoice.pk %}" class="btn btn-ghost btn-sm">📥 PDF</a>
+    <a href="{% url 'invoice-edit' invoice.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+  </div>
+</div>
+
+<div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <!-- Invoice Details -->
+  <div class="card">
+    <div class="card-title">Details</div>
+    <table style="min-width:auto;">
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Customer:</td><td><strong>{{ invoice.customer.name }}</strong></td></tr>
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Issue Date:</td><td>{{ invoice.issue_date|date:"M d, Y" }}</td></tr>
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Due Date:</td><td>{{ invoice.due_date|date:"M d, Y" }}</td></tr>
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Tax Rate:</td><td>{{ invoice.tax_rate|floatformat:4 }}</td></tr>
+    </table>
+    {% if invoice.notes %}
+    <div class="mt-2">
+      <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:0.5px;">Notes</div>
+      <div>{{ invoice.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Totals -->
+  <div class="card">
+    <div class="card-title">Amounts</div>
+    <table style="min-width:auto;">
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Subtotal:</td><td class="text-right">${{ invoice.subtotal|floatformat:2 }}</td></tr>
+      <tr><td class="text-muted" style="padding:4px 8px 4px 0;">Tax:</td><td class="text-right">${{ invoice.tax_amount|floatformat:2 }}</td></tr>
+      <tr><td style="padding:4px 8px 4px 0;font-weight:700;border-top:1px solid var(--border);">Total:</td><td class="text-right" style="font-weight:700;border-top:1px solid var(--border);">${{ invoice.total_amount|floatformat:2 }}</td></tr>
+      <tr><td class="text-muted text-sm" style="padding:4px 8px 4px 0;">Paid:</td><td class="text-right text-green text-sm">${{ invoice.amount_paid|floatformat:2 }}</td></tr>
+      <tr><td style="padding:4px 8px 4px 0;font-weight:700;">Balance Due:</td><td class="text-right font-mono" style="font-weight:700;color:{% if invoice.balance_due > 0 %}var(--red){% else %}var(--green){% endif %};">${{ invoice.balance_due|floatformat:2 }}</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Line Items -->
+<div class="card mt-3">
+  <div class="card-title mb-2">Line Items</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th class="text-right">Qty</th>
+          <th class="text-right">Rate</th>
+          <th class="text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in invoice.lines.all %}
+        <tr>
+          <td>{{ line.description }}</td>
+          <td class="text-right">{{ line.quantity }}</td>
+          <td class="text-right">${{ line.rate|floatformat:2 }}</td>
+          <td class="text-right">${{ line.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Payments -->
+{% if invoice.payments.exists %}
+<div class="card mt-3">
+  <div class="card-title mb-2">Payments</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th class="text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in invoice.payments.all %}
+        <tr>
+          <td>{{ payment.date|date:"M d, Y" }}</td>
+          <td>{{ payment.get_method_display }}</td>
+          <td class="text-muted">{{ payment.reference|default:"—" }}</td>
+          <td class="text-right text-green">${{ payment.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Record Payment -->
+{% if invoice.status != 'paid' and invoice.status != 'void' %}
+<div class="card mt-3">
+  <div class="card-title mb-2">Record Payment</div>
+  <form method="post" action="{% url 'invoice-add-payment' invoice.pk %}">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end;">
+      <div>
+        <label class="form-label">Amount</label>
+        <input type="number" name="amount" step="0.01" class="form-control" placeholder="0.00" required>
+      </div>
+      <div>
+        <label class="form-label">Date</label>
+        <input type="date" name="date" class="form-control" value="{% now 'Y-m-d' %}">
+      </div>
+      <div>
+        <label class="form-label">Method</label>
+        <select name="method" class="form-select">
+          <option value="check">Check</option>
+          <option value="cash">Cash</option>
+          <option value="card">Credit Card</option>
+          <option value="ach">ACH</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-2">
+      <label class="form-label">Reference (Check #, etc.)</label>
+      <input type="text" name="reference" class="form-control" placeholder="Optional">
+    </div>
+    <button type="submit" class="btn btn-success btn-sm mt-2">Record Payment</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Status Actions -->
+<div class="flex gap-2 mt-3">
+  {% if invoice.status == 'draft' %}
+  <form method="post" action="{% url 'invoice-update-status' invoice.pk %}">
+    {% csrf_token %}<input type="hidden" name="status" value="sent">
+    <button type="submit" class="btn btn-primary btn-sm">Mark as Sent</button>
+  </form>
+  {% endif %}
+  {% if invoice.status == 'sent' %}
+  <form method="post" action="{% url 'invoice-update-status' invoice.pk %}">
+    {% csrf_token %}<input type="hidden" name="status" value="paid">
+    <button type="submit" class="btn btn-success btn-sm">Mark as Paid</button>
+  </form>
+  {% endif %}
+  {% if invoice.status != 'void' and invoice.status != 'paid' %}
+  <form method="post" action="{% url 'invoice-update-status' invoice.pk %}">
+    {% csrf_token %}<input type="hidden" name="status" value="void">
+    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Void this invoice?')">Void</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

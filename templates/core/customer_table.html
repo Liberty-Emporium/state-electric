@@ -1,0 +1,44 @@
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Company</th>
+      <th>Division</th>
+      <th>Phone</th>
+      <th>Email</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for customer in customers %}
+    <tr>
+      <td><a href="{% url 'customer-detail' customer.pk %}">{{ customer.name }}</a></td>
+      <td class="text-muted">{{ customer.company|default:"—" }}</td>
+      <td><span class="badge badge-{% if customer.division == 'commercial' %}sent{% else %}paid{% endif %}">{{ customer.get_division_display }}</span></td>
+      <td class="text-muted">{{ customer.phone|default:"—" }}</td>
+      <td class="text-muted">{{ customer.email|default:"—" }}</td>
+      <td class="text-right">
+        <a href="{% url 'customer-edit' customer.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="text-muted" style="text-align:center;padding:32px;">
+      No customers found. <a href="{% url 'customer-create' %}">Add your first customer →</a>
+    </td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if is_paginated %}
+<div class="flex-between mt-3">
+  <span class="text-muted text-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  <div class="flex gap-1">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-sm">← Prev</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost btn-sm">Next →</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

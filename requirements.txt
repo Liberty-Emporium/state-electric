@@ -1,0 +1,7 @@
+Django>=5.0
+djangorestframework>=3.14
+psycopg2-binary>=2.9
+whitenoise>=6.0
+weasyprint>=60.0
+gunicorn>=21.0
+django-extensions>=3.2

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ customer.name }} — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ customer.name }}</h1>
+    <div class="text-muted text-sm">
+      {% if customer.company %}{{ customer.company }} · {% endif %}
+      <span class="badge badge-{% if customer.division == 'commercial' %}sent{% else %}paid{% endif %}">{{ customer.get_division_display }}</span>
+    </div>
+  </div>
+  <a href="{% url 'customer-edit' customer.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+</div>
+
+<div class="card">
+  <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+    <div>
+      <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:0.5px;">Phone</div>
+      <div>{{ customer.phone|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:0.5px;">Email</div>
+      <div>{{ customer.email|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:0.5px;">Address</div>
+      <div>{{ customer.address|default:"—"|linebreaksbr }}</div>
+    </div>
+    {% if customer.notes %}
+    <div>
+      <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:0.5px;">Notes</div>
+      <div>{{ customer.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Customer Invoices -->
+<div class="card mt-3">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin-bottom:0;">Invoices</div>
+    <a href="{% url 'invoice-create' %}?customer={{ customer.pk }}" class="btn btn-primary btn-sm">+ New Invoice</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Due Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{% url 'invoice-detail' inv.pk %}">#{{ inv.invoice_number }}</a></td>
+          <td>${{ inv.total_amount|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+          <td class="text-muted">{{ inv.due_date|date:"M d, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-muted" style="text-align:center;padding:24px;">No invoices for this customer.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

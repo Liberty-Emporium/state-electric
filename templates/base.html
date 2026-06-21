@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="State Electric — Business Management">
+
+  {% comment %}
+  <link rel="manifest" href="{% url 'pwa-manifest' %}">
+  {% endcomment %}
+  <link rel="apple-touch-icon" href="{% static 'img/icon-192.png' %}">
+
+  <title>{% block title %}State Electric{% endblock %}</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Prevent white flash -->
+  <style>html,body{background:#0f172a;color:#e2e8f0;margin:0;padding:0;min-height:100vh}*,*::before,*::after{box-sizing:border-box}</style>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="{% url 'dashboard' %}" class="nav-logo">
+        ⚡ <span>State Electric</span>
+      </a>
+      <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="nav-links" id="nav-links">
+      <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Dashboard</a>
+      <a href="{% url 'customer-list' %}" class="{% if 'customer' in request.resolver_match.url_name %}active{% endif %}">👥 Customers</a>
+      <a href="{% url 'invoice-list' %}" class="{% if 'invoice' in request.resolver_match.url_name %}active{% endif %}">📄 Invoices</a>
+      <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">📈 Reports</a>
+      {% if user.is_superuser %}
+      <a href="/admin/">⚙️ Admin</a>
+      {% endif %}
+      <div class="nav-logout-row">
+        <span class="nav-user-info">{{ user.get_full_name|default:user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Logout</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash Messages -->
+  {% if messages %}
+  <div class="flash-container">
+    {% for message in messages %}
+    <div class="flash flash-{{ message.tags }}" role="alert">
+      {{ message }}
+      <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global Scripts -->
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

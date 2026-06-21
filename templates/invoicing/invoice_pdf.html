@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: letter; margin: 0.75in; }
+body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #1a1a1a; line-height: 1.4; }
+.header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+.company { font-size: 22px; font-weight: bold; color: #1e3a5f; }
+.company-sub { font-size: 10px; color: #666; }
+.invoice-title { font-size: 28px; font-weight: bold; color: #1e3a5f; text-align: right; }
+.invoice-meta { text-align: right; font-size: 10px; color: #555; }
+.addresses { display: flex; justify-content: space-between; margin-bottom: 24px; }
+.address-block { font-size: 10px; }
+.address-label { font-weight: bold; font-size: 9px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+th { background: #1e3a5f; color: #fff; padding: 8px 10px; font-size: 9px; text-transform: uppercase; text-align: left; }
+td { padding: 8px 10px; border-bottom: 1px solid #e5e5e5; font-size: 10px; }
+td.right, th.right { text-align: right; }
+.totals { margin-left: auto; width: 240px; }
+.totals td { border: none; padding: 4px 10px; font-size: 10px; }
+.totals .grand-total td { font-size: 14px; font-weight: bold; border-top: 2px solid #1e3a5f; padding-top: 8px; }
+.notes { margin-top: 30px; font-size: 10px; color: #555; }
+.footer { margin-top: 40px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #e5e5e5; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="company">⚡ State Electric</div>
+    <div class="company-sub">Electrical Services<br>Commercial &amp; Residential</div>
+  </div>
+  <div>
+    <div class="invoice-title">INVOICE</div>
+    <div class="invoice-meta">
+      <strong>#{{ invoice.invoice_number }}</strong><br>
+      Issue Date: {{ invoice.issue_date|date:"M d, Y" }}<br>
+      Due Date: {{ invoice.due_date|date:"M d, Y" }}
+    </div>
+  </div>
+</div>
+
+<div class="addresses">
+  <div class="address-block">
+    <div class="address-label">Bill To</div>
+    <strong>{{ invoice.customer.name }}</strong><br>
+    {% if invoice.customer.company %}{{ invoice.customer.company }}<br>{% endif %}
+    {{ invoice.customer.address|default:""|linebreaksbr }}<br>
+    {% if invoice.customer.phone %}Phone: {{ invoice.customer.phone }}<br>{% endif %}
+    {% if invoice.customer.email %}Email: {{ invoice.customer.email }}{% endif %}
+  </div>
+  <div class="address-block" style="text-align:right;">
+    <div class="address-label">Status</div>
+    <strong>{{ invoice.get_status_display }}</strong>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th class="right">Qty</th>
+      <th class="right">Rate</th>
+      <th class="right">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in invoice.lines.all %}
+    <tr>
+      <td>{{ line.description }}</td>
+      <td class="right">{{ line.quantity }}</td>
+      <td class="right">${{ line.rate|floatformat:2 }}</td>
+      <td class="right">${{ line.amount|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table class="totals">
+  <tr><td>Subtotal:</td><td class="right">${{ invoice.subtotal|floatformat:2 }}</td></tr>
+  <tr><td>Tax ({{ invoice.tax_rate|floatformat:4 }}):</td><td class="right">${{ invoice.tax_amount|floatformat:2 }}</td></tr>
+  <tr class="grand-total"><td>Total Due:</td><td class="right">${{ invoice.total_amount|floatformat:2 }}</td></tr>
+  {% if invoice.amount_paid > 0 %}
+  <tr><td>Amount Paid:</td><td class="right" style="color:#22c55e;">-${{ invoice.amount_paid|floatformat:2 }}</td></tr>
+  <tr class="grand-total"><td>Balance Due:</td><td class="right">${{ invoice.balance_due|floatformat:2 }}</td></tr>
+  {% endif %}
+</table>
+
+{% if invoice.notes %}
+<div class="notes">
+  <strong>Notes:</strong><br>
+  {{ invoice.notes|linebreaksbr }}
+</div>
+{% endif %}
+
+<div class="footer">
+  Thank you for your business! · Payment due by {{ invoice.due_date|date:"M d, Y" }}
+</div>
+</body>
+</html>

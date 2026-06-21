@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Reports — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📈 Reports</h1>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-num">${{ total_revenue|floatformat:0|intcomma }}</div>
+    <div class="stat-label">Total Revenue</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-num">${{ month_revenue|floatformat:0|intcomma }}</div>
+    <div class="stat-label">This Month</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-num">${{ total_outstanding|floatformat:0|intcomma }}</div>
+    <div class="stat-label">Outstanding AR</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-num">{{ overdue_count }}</div>
+    <div class="stat-label">Overdue Invoices</div>
+  </div>
+</div>
+
+<!-- Revenue by Division -->
+{% if revenue_by_division %}
+<div class="card">
+  <div class="card-title mb-2">Revenue by Division</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
+    {% for item in revenue_by_division %}
+    <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;">
+      <div style="font-size:24px;font-weight:800;">${{ item.revenue|floatformat:0|intcomma }}</div>
+      <div class="text-muted text-xs mt-1">{{ item.division.display_name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Invoice Status Breakdown -->
+<div class="card mt-3">
+  <div class="card-title mb-2">Invoice Status</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+    {% for status, count in status_counts.items %}
+    <div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;">
+      <div style="font-size:20px;font-weight:700;">{{ count }}</div>
+      <div class="text-xs text-muted">{{ status|title }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Monthly Revenue Chart -->
+<div class="card mt-3">
+  <div class="card-title mb-2">Monthly Revenue (Last 6 Months)</div>
+  <div style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:12px 0;">
+    {% for month in monthly_revenue %}
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:11px;font-weight:600;margin-bottom:4px;">
+        {% if month.revenue > 0 %}${{ month.revenue|floatformat:0|intcomma }}{% else %}—{% endif %}
+      </div>
+      <div style="background:{% if month.revenue > 0 %}var(--accent){% else %}var(--border){% endif %};border-radius:4px 4px 0 0;min-height:4px;height:{{ month.bar_height }}px;">
+      </div>
+      <div class="text-xs text-muted mt-2" style="font-size:10px;">{{ month.month }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

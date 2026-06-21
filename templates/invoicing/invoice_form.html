@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Invoice — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{% if form.instance.pk %}Edit{% else %}New{% endif %} Invoice</h1>
+</div>
+
+<div class="card" style="max-width:700px;">
+  <form method="post" id="invoice-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label">Customer *</label>
+      {{ form.customer }}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Issue Date</label>
+        {{ form.issue_date }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Due Date</label>
+        {{ form.due_date }}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tax Rate (decimal, e.g. 0.0675 for NC)</label>
+      {{ form.tax_rate }}
+    </div>
+
+    <!-- Line Items -->
+    <div class="mt-3">
+      <div class="card-title mb-2">Line Items</div>
+      {{ line_formset.management_form }}
+      <div id="line-items">
+        {% for line_form in line_formset %}
+        <div class="flex gap-2 mb-2 line-item-row" style="align-items:flex-start;">
+          <div style="flex:2;">
+            {{ line_form.description }}
+            {{ line_form.id }}
+          </div>
+          <div style="width:80px;">
+            <input type="number" name="{{ line_form.quantity.html_name }}" value="{{ line_form.quantity.value|default:'1' }}" step="0.01" class="form-control" placeholder="Qty">
+          </div>
+          <div style="width:100px;">
+            <input type="number" name="{{ line_form.rate.html_name }}" value="{{ line_form.rate.value|default:'' }}" step="0.01" class="form-control" placeholder="Rate">
+          </div>
+          {% if line_form.instance.pk %}
+          <div style="padding-top:10px;">
+            <label class="text-xs text-muted">
+              {{ line_form.DELETE }} Delete
+            </label>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addLineItem()">+ Add Line</button>
+    </div>
+
+    <div class="form-group mt-3">
+      <label class="form-label">Notes (shown on invoice)</label>
+      {{ form.notes }}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Internal Notes</label>
+      {{ form.internal_notes }}
+    </div>
+
+    <div class="flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update{% else %}Create{% endif %} Invoice</button>
+      <a href="{% url 'invoice-list' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addLineItem() {
+  var totalForms = document.getElementById('id_lines-TOTAL_FORMS');
+  var idx = parseInt(totalForms.value);
+  var container = document.getElementById('line-items');
+  var row = document.createElement('div');
+  row.className = 'flex gap-2 mb-2 line-item-row';
+  row.style.alignItems = 'flex-start';
+  row.innerHTML = `
+    <div style="flex:2;"><input type="text" name="lines-${idx}-description" class="form-control" placeholder="Description"></div>
+    <div style="width:80px;"><input type="number" name="lines-${idx}-quantity" value="1" step="0.01" class="form-control" placeholder="Qty"></div>
+    <div style="width:100px;"><input type="number" name="lines-${idx}-rate" step="0.01" class="form-control" placeholder="Rate"></div>
+  `;
+  container.appendChild(row);
+  totalForms.value = idx + 1;
+}
+</script>
+{% endblock %}

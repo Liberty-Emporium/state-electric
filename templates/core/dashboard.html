@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Dashboard — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📊 Dashboard</h1>
+  <div class="text-muted text-sm">
+    {% if user.is_owner %}All Divisions{% else %}{{ user.division.display_name }}{% endif %}
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-num">${{ total_revenue|floatformat:0|intcomma }}</div>
+    <div class="stat-label">Total Revenue</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-num">${{ outstanding|floatformat:0|intcomma }}</div>
+    <div class="stat-label">Outstanding</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-num">{{ overdue_count }}</div>
+    <div class="stat-label">Overdue</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ total_customers }}</div>
+    <div class="stat-label">Customers</div>
+  </div>
+</div>
+
+<!-- Revenue by Division (owner only) -->
+{% if revenue_by_division %}
+<div class="card mb-3">
+  <div class="card-title">Revenue by Division</div>
+  <div class="flex gap-2" style="flex-wrap:wrap;">
+    {% for item in revenue_by_division %}
+    <div style="flex:1;min-width:140px;text-align:center;padding:12px;background:var(--bg);border-radius:8px;">
+      <div style="font-size:20px;font-weight:800;">${{ item.revenue|floatformat:0|intcomma }}</div>
+      <div class="text-muted text-xs mt-1">{{ item.division.display_name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Invoices -->
+<div class="card">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin-bottom:0;">Recent Invoices</div>
+    <a href="{% url 'invoice-list' %}" class="text-sm">View All →</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in recent_invoices %}
+        <tr>
+          <td><a href="{% url 'invoice-detail' inv.pk %}">#{{ inv.invoice_number }}</a></td>
+          <td><a href="{% url 'customer-detail' inv.customer.pk %}">{{ inv.customer.name }}</a></td>
+          <td>${{ inv.total_amount|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+          <td class="text-muted">{{ inv.issue_date|date:"M d, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-muted" style="text-align:center;padding:24px;">No invoices yet. <a href="{% url 'invoice-create' %}">Create one →</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="flex gap-2 mt-3" style="flex-wrap:wrap;">
+  <a href="{% url 'invoice-create' %}" class="btn btn-primary">+ New Invoice</a>
+  <a href="{% url 'customer-create' %}" class="btn btn-ghost">+ New Customer</a>
+  <a href="{% url 'reports' %}" class="btn btn-ghost">📈 Reports</a>
+</div>
+{% endblock %}

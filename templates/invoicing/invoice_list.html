@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Invoices — State Electric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📄 Invoices</h1>
+  <a href="{% url 'invoice-create' %}" class="btn btn-primary btn-sm">+ New Invoice</a>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <input type="text" class="form-control" placeholder="Search..." name="q" value="{{ search }}" style="flex:1;min-width:200px;">
+  <select class="form-select" name="status" style="width:auto;">
+    <option value="">All Status</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-ghost btn-sm" hx-get="{% url 'invoice-list' %}" hx-target="#invoice-table" hx-include="[name='q'],[name='status']">Filter</button>
+</div>
+
+<div class="table-wrap" id="invoice-table">
+  {% include "invoicing/invoice_table.html" %}
+</div>
+{% endblock %}
