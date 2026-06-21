@@ -1,3 +1,0 @@
-[phases]
-release = false
-start = "bash start.sh"

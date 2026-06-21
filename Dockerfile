@@ -1,3 +1,4 @@
+# Force fresh build - snapshot break
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -23,10 +24,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
-# Release phase
-RUN python manage.py migrate --noinput 2>/dev/null || true
-RUN python manage.py collectstatic --noinput
-RUN python manage.py seed_data --noinput 2>/dev/null || true
-
-# Start
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8080", "--timeout", "30", "--workers", "2", "--threads", "4"]
+# Start - migrate then run
+CMD ["bash", "-c", "python manage.py migrate --noinput && python manage.py seed_data --noinput 2>/dev/null; gunicorn config.wsgi:application --bind 0.0.0.0:8080 --timeout 30 --workers 2 --threads 4"]
