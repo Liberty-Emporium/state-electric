@@ -4,6 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, include
 
 from core import views as core_views
+from core.pwa_views import pwa_manifest, service_worker
 from invoicing import views as inv_views
 from reporting import views as report_views
 
@@ -41,6 +42,11 @@ urlpatterns = [
     # API for offline sync
     path('api/invoices/', inv_views.api_invoices, name='api-invoices'),
     path('api/customers/', inv_views.api_customers, name='api-customers'),
+
+    # PWA
+    path('manifest.json', pwa_manifest, name='pwa-manifest'),
+    path('sw.js', service_worker, name='service-worker'),
+    path('offline/', core_views.dashboard, name='offline'),  # Placeholder — renders dashboard which will show cached data
 
     # Reporting
     path('reports/', report_views.reports_dashboard, name='reports'),

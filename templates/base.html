@@ -10,9 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="State Electric — Business Management">
 
-  {% comment %}
   <link rel="manifest" href="{% url 'pwa-manifest' %}">
-  {% endcomment %}
   <link rel="apple-touch-icon" href="{% static 'img/icon-192.png' %}">
 
   <title>{% block title %}State Electric{% endblock %}</title>
@@ -84,6 +82,11 @@
 
   <!-- Global Scripts -->
   <script src="{% static 'js/app.js' %}"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register("{% url 'service-worker' %}").catch(function(e) { console.log('SW register failed:', e); });
+  }
+  </script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

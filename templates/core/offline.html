@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Offline — State Electric{% endblock %}
+
+{% block content %}
+<div style="text-align:center;padding:60px 24px;">
+  <div style="font-size:48px;margin-bottom:16px;">📡</div>
+  <h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">You're Offline</h1>
+  <p class="text-muted" style="margin-bottom:24px;">State Electric works offline, but this page hasn't been cached yet. Connect to the internet and try again.</p>
+  <a href="/dashboard/" class="btn btn-primary">Try Again</a>
+</div>
+{% endblock %}
