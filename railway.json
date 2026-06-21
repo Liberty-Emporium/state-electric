@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "nixpacks"
+  },
+  "deploy": {
+    "healthcheckPath": "/accounts/login/",
+    "healthcheckTimeout": 60,
+    "restartPolicyType": "on_failure"
+  }
+}

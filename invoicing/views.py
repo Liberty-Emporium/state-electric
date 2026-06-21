@@ -179,12 +179,16 @@ def invoice_pdf(request, pk):
         'company_phone': '',
         'company_email': '',
     })
-    from weasyprint import HTML
-    pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
 
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
-    return response
+    try:
+        from weasyprint import HTML
+        pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
+        return response
+    except Exception as e:
+        # Fallback: return HTML if WeasyPrint system deps not available
+        return HttpResponse(html_string, content_type='text/html')
 
 
 @login_required
