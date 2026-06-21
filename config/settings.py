@@ -13,6 +13,11 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '.up.railway.app,localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
+    # Local apps first (custom user model must be before auth)
+    'core',
+    'invoicing',
+    'reporting',
+    # Django
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -22,10 +27,6 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     # Third party
     'rest_framework',
-    # Local apps
-    'core',
-    'invoicing',
-    'reporting',
 ]
 
 MIDDLEWARE = [

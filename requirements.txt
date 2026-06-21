@@ -1,4 +1,4 @@
-Django>=5.0,<6.0
+Django==5.2.7
 djangorestframework>=3.14
 psycopg2-binary>=2.9
 whitenoise>=6.0
