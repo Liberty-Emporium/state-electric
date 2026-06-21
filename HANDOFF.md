@@ -17,12 +17,12 @@ Last-Modified: Sun, 21 Jun 2026 04:02:03 GMT
 ## 📌 WHAT IS THIS?
 
 State Electric is an electrical services corporation that wants to replace QuickBooks with a custom web app. Jay (the developer, owner of Alexander AI Solutions) has already:
-- Talked to the customer (Angela)
+- Talked to the customer (John and Rhonda at State Electric)
 - Agreed on pricing and features
 - Sent the customer an audio pitch (customer approved)
 - Written a contract (ready to sign)
 
-**Jay wants YOU to build the Essential tier first, get it deployed so the customer can see it, THEN she signs the contract and you continue with Standard features.**
+**Jay wants YOU to build the Essential tier first, get it deployed so the customer can see it, THEN they sign the contract and you continue with Standard features.**
 
 ---
 
@@ -193,9 +193,9 @@ Key points:
 
 ## 📞 CUSTOMER CONTACT
 
-The customer is Angela at State Electric.
-Jay has been communicating with her via text/audio messages.
-All feature decisions have been approved by both Jay and Angela.
+The customer is John and Rhonda Tig at State Electric.
+Jay has been communicating with them via text/audio messages.
+All feature decisions have been approved by both Jay and John/Rhonda.
 
 ---
 
