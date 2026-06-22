@@ -26,4 +26,4 @@ COPY . .
 RUN python manage.py collectstatic --noinput || true
 
 # Start - migrate then run
-CMD ["bash", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8080} --timeout 30 --workers 2 --threads 4"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --timeout 30 --workers 2 --threads 4"]
