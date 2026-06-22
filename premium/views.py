@@ -14,9 +14,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from core.models import Customer, Division, User
+from core.models import Customer, Division, User, Invoice, InvoiceLineItem
 from core.views import DivisionMixin
-from invoicing.models import Invoice, InvoiceLineItem
 from standard.models import Job, Estimate, EstimateLineItem
 from .forms import (
     RecurringInvoiceForm, RecurringLineFormSet,
@@ -249,7 +248,7 @@ def bank_match_transaction(request, pk):
     match_id = request.POST.get('match_id')
 
     if match_type == 'payment':
-        from invoicing.models import Payment
+        from core.models import Payment
         transaction.matched_payment = get_object_or_404(Payment, pk=match_id)
         transaction.status = 'matched'
     elif match_type == 'expense':
