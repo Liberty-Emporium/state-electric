@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Contractor — State Electric{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit{% else %}Add{% endif %} Contractor</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Name</label>{{ form.name }}</div>
+        <div class="col-md-6 mb-3"><label class="form-label">Business Name</label>{{ form.business_name }}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3"><label class="form-label">Entity Type</label>{{ form.entity_type }}</div>
+        <div class="col-md-4 mb-3"><label class="form-label">Email</label>{{ form.email }}</div>
+        <div class="col-md-4 mb-3"><label class="form-label">Phone</label>{{ form.phone }}</div>
+      </div>
+      <div class="mb-3"><label class="form-label">Address</label>{{ form.address }}</div>
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Tax ID / EIN</label>{{ form.tax_id }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">W-9 Date</label>{{ form.w9_date }}</div>
+      </div>
+      <div class="mb-3"><label class="form-label">Notes</label>{{ form.notes }}</div>
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="{% url 'contractor-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

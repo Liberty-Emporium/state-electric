@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Reconcile — {{ account.name }}{% endblock %}
+{% block content %}
+<h1>🏦 {{ account.name }}</h1>
+<p class="text-muted">{{ account.bank_name }} · Balance: ${{ account.current_balance|floatformat:2 }}</p>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h5>Import Transactions</h5>
+    <form method="post" action="{% url 'bank-import-csv' account.pk %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="d-flex gap-2">
+        <input type="file" name="csv_file" class="form-control form-control-sm" accept=".csv" required>
+        <button type="submit" class="btn btn-sm btn-primary">Import CSV</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h5>Unmatched Transactions</h5>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for tx in unmatched %}
+          <tr>
+            <td>{{ tx.date|date:"M d" }}</td>
+            <td>{{ tx.description }}</td>
+            <td class="{% if tx.amount < 0 %}text-danger{% else %}text-success{% endif %}">${{ tx.amount|floatformat:2 }}</td>
+            <td>{{ tx.get_status_display }}</td>
+            <td>
+              <form method="post" action="{% url 'bank-match' tx.pk %}" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="match_type" value="payment">
+                <input type="hidden" name="match_id" value="0">
+                <button type="submit" class="btn btn-sm btn-outline-light">Match</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted">No unmatched transactions.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

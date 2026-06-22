@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Contractors — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>👤 Contractors (1099)</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'contractor-create' %}" class="btn btn-primary">+ Add Contractor</a>
+    <a href="{% url 'contractor-payment-create' %}" class="btn btn-outline-light">+ Record Payment</a>
+  </div>
+</div>
+<div class="card-grid">
+  {% for c in contractors %}
+  <div class="card">
+    <div class="card-body">
+      <span class="badge">{{ c.get_entity_type_display }}</span>
+      <h5 class="mt-2 mb-1">{{ c.name }}</h5>
+      <p class="text-muted small">{{ c.business_name|default:"" }}</p>
+      <p class="small mb-0">{% if c.w9_on_file %}✅ W-9 on file{% else %}⚠ No W-9{% endif %}</p>
+      <p class="small">YTD Paid: <strong>${{ c.total_paid_ytd|floatformat:2 }}</strong></p>
+      <div class="d-flex gap-1 mt-2">
+        <a href="{% url 'contractor-edit' c.pk %}" class="btn btn-sm btn-outline-light">Edit</a>
+        <a href="{% url 'generate-1099' c.pk 2025 %}" class="btn btn-sm btn-success">1099-NEC</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state"><div class="empty-state-icon">👤</div><p>No contractors.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Estimate Template — State Electric{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit{% else %}New{% endif %} Estimate Template</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Name</label>{{ form.name }}</div>
+        <div class="col-md-6 mb-3"><label class="form-label">Job Type</label>{{ form.job_type }}</div>
+      </div>
+      <div class="mb-3"><label class="form-label">Description</label>{{ form.description }}</div>
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Division</label>{{ form.division }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Labor Hours</label>{{ form.base_labor_hours }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Labor Rate</label>{{ form.labor_rate }}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3"><label class="form-label">Material Estimate</label>{{ form.material_estimate }}</div>
+        <div class="col-md-4 mb-3"><label class="form-label">Overhead %</label>{{ form.overhead_percent }}</div>
+        <div class="col-md-4 mb-3"><label class="form-label">Profit Margin %</label>{{ form.profit_margin_percent }}</div>
+      </div>
+      <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Save{% else %}Create{% endif %}</button>
+      <a href="{% url 'template-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

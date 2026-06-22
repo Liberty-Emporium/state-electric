@@ -38,32 +38,28 @@ State Electric is an electrical services corporation that wants to replace Quick
 
 ---
 
-## 💰 PRICING (AGREED)
+## 💰 PRICING (REVISED — ALL-IN PACKAGE)
 
-| Tier | Price | Status |
-|------|-------|--------|
-| Essential | $1,500 | Build FIRST |
-| Standard | $2,000 | Build AFTER contract signed |
-| Premium (AI) | $3,300 | Optional add-on |
+| Package | Price | Status |
+|---------|-------|--------|
+| **Complete** (Essential + Standard + Premium) | **$3,500** | **Build ALL** |
 
-**Total initial contract: $3,500 (Essential + Standard)**
-**Payment: 50% upfront ($1,750), 50% on delivery ($1,750)**
+**Payment:** 50% upfront ($1,750), 50% on delivery ($1,750)
+
+**Why one package:** Customer needs a full QuickBooks replacement. Selling piecemeal creates friction and risks losing the sale. One price, everything included.
 
 ---
 
 ## 📋 BUILD ORDER
 
-### STEP 1: Build Essential (DO THIS FIRST)
+### PHASE 1: Essential (DONE ✅)
 Customer management, employee management, invoicing, basic reports, offline PWA
-→ Deploy so customer can preview
-→ Customer signs contract
-→ Continue to Standard
 
-### STEP 2: Build Standard (AFTER CONTRACT)
+### PHASE 2: Standard (DONE ✅)
 Payroll, time tracking, job management, estimates, PDF generation, reports
 
-### STEP 3: Build Premium (IF CUSTOMER PAYS)
-AI estimates, analytics, tax forms, 1099 support
+### PHASE 3: Premium (BUILD NOW)
+Recurring invoices, expense tracking, bank reconciliation, purchase orders, 1099 support, AI estimates, tax forms, data import, contracts
 
 ---
 

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Import Data — State Electric{% endblock %}
+{% block content %}
+<h1>Import Data</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div class="mb-3"><label class="form-label">Import Type</label>{{ form.import_type }}</div>
+      <div class="mb-3"><label class="form-label">CSV/Excel File</label>{{ form.file }}</div>
+      <button type="submit" class="btn btn-primary">Upload & Import</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

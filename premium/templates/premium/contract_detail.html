@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ contract.title }} — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div><h1>{{ contract.title }}</h1><p class="text-muted">{{ contract.customer.name }} · {{ contract.get_status_display }}</p></div>
+  <div class="d-flex gap-2">
+    {% if contract.status == 'draft' %}
+    <form method="post" action="{% url 'contract-send' contract.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary">Send for Signature</button></form>
+    {% endif %}
+    {% if contract.status == 'sent' %}
+    <button class="btn btn-success" onclick="document.getElementById('sign-form').style.display='block'">Sign Contract</button>
+    {% endif %}
+  </div>
+</div>
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex gap-2 mb-3"><span class="badge badge-{{ contract.status }}">{{ contract.get_status_display }}</span></div>
+    <div class="row">
+      <div class="col-sm-6"><p><strong>Customer:</strong> {{ contract.customer.name }}</p><p><strong>Amount:</strong> {% if contract.amount %}${{ contract.amount|floatformat:2 }}{% endif %}</p></div>
+      <div class="col-sm-6"><p><strong>Start:</strong> {{ contract.start_date|date:"M d, Y"|default:"—" }}</p><p><strong>End:</strong> {{ contract.end_date|date:"M d, Y"|default:"—" }}</p></div>
+    </div>
+    {% if contract.signed_at %}
+    <div class="alert alert-success mt-3">
+      <strong>Signed by {{ contract.signer_name }}</strong> on {{ contract.signed_at|date:"M d, Y \a\t H:i" }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <h5>Contract Terms</h5>
+    <div style="white-space:pre-wrap">{{ contract.body }}</div>
+  </div>
+</div>
+{% if contract.status == 'sent' %}
+<div id="sign-form" class="card mt-3" style="display:none">
+  <div class="card-body">
+    <h5>Sign Contract</h5>
+    <form method="post" action="{% url 'contract-sign' contract.pk %}">{% csrf_token %}
+      <div class="mb-3"><label class="form-label">Full Name</label><input type="text" name="signer_name" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label">Signature</label><br><canvas id="sig-canvas" width="400" height="150" style="border:1px solid #ccc;background:#fff;cursor:crosshair"></canvas></div>
+      <input type="hidden" name="signature_data" id="sig-data">
+      <button type="submit" class="btn btn-success">Submit Signature</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

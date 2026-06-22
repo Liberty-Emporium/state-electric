@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Purchase Order — State Electric{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit{% else %}New{% endif %} Purchase Order</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Vendor</label>{{ form.vendor }}</div>
+        <div class="col-md-6 mb-3"><label class="form-label">Division</label>{{ form.division }}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Vendor Email</label>{{ form.vendor_email }}</div>
+        <div class="col-md-6 mb-3"><label class="form-label">Job</label>{{ form.job }}</div>
+      </div>
+      <div class="mb-3"><label class="form-label">Vendor Address</label>{{ form.vendor_address }}</div>
+      <div class="row">
+        <div class="col-md-3 mb-3"><label class="form-label">Status</label>{{ form.status }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Order Date</label>{{ form.order_date }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Expected Date</label>{{ form.expected_date }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Shipping</label>{{ form.shipping }}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Tax Rate</label>{{ form.tax_rate }}</div>
+      </div>
+      <div class="mb-3"><label class="form-label">Notes</label>{{ form.notes }}</div>
+      <h5 class="mt-4">Line Items</h5>
+      {{ line_formset.management_form }}
+      <table class="table table-sm">
+        <thead><tr><th>Description</th><th>Qty</th><th>Received</th><th>Rate</th><th>Order</th><th></th></tr></thead>
+        <tbody>
+          {% for f in line_formset %}
+          <tr><td>{{ f.description }}</td><td>{{ f.quantity }}</td><td>{{ f.received_quantity }}</td><td>{{ f.rate }}</td><td>{{ f.sort_order }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Save{% else %}Create{% endif %}</button>
+      <a href="{% url 'po-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

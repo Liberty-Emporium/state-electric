@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Tax Forms — State Electric{% endblock %}
+{% block content %}
+<h1>📑 Tax Forms</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Type</th><th>Year</th><th>Recipient</th><th>Compensation</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for tf in tax_forms %}
+          <tr>
+            <td>{{ tf.get_form_type_display }}</td>
+            <td>{{ tf.tax_year }}</td>
+            <td>{{ tf.recipient_name }}</td>
+            <td>${{ tf.total_compensation|floatformat:2 }}</td>
+            <td><span class="badge badge-{{ tf.status }}">{{ tf.get_status_display }}</span></td>
+            <td><a href="{% url 'tax-form-detail' tf.pk %}" class="btn btn-sm btn-outline-light">View</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted">No tax forms.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

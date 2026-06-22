@@ -8,6 +8,7 @@ from core.pwa_views import pwa_manifest, service_worker
 from invoicing import views as inv_views
 from reporting import views as report_views
 from standard import views as std_views
+from premium import views as prem_views
 
 from django.http import JsonResponse
 
@@ -95,4 +96,76 @@ urlpatterns = [
 
     # Reporting
     path('reports/', report_views.reports_dashboard, name='reports'),
+
+    # ═══ PREMIUM TIER ═══
+
+    # Recurring Invoices
+    path('recurring/', include([
+        path('', prem_views.RecurringInvoiceListView.as_view(), name='recurring-list'),
+        path('add/', prem_views.RecurringInvoiceCreateView.as_view(), name='recurring-create'),
+        path('<int:pk>/', prem_views.RecurringInvoiceDetailView.as_view(), name='recurring-detail'),
+        path('<int:pk>/generate/', prem_views.recurring_generate_now, name='recurring-generate'),
+    ])),
+
+    # Expenses
+    path('expenses/', include([
+        path('', prem_views.ExpenseListView.as_view(), name='expense-list'),
+        path('add/', prem_views.ExpenseCreateView.as_view(), name='expense-create'),
+        path('<int:pk>/edit/', prem_views.ExpenseUpdateView.as_view(), name='expense-edit'),
+    ])),
+
+    # Bank Reconciliation
+    path('bank/', include([
+        path('', prem_views.BankAccountListView.as_view(), name='bank-list'),
+        path('add/', prem_views.BankAccountCreateView.as_view(), name='bank-create'),
+        path('<int:pk>/', prem_views.BankReconciliationView.as_view(), name='bank-reconcile'),
+        path('<int:pk>/import/', prem_views.bank_import_csv, name='bank-import-csv'),
+    ])),
+    path('bank-match/<int:pk>/', prem_views.bank_match_transaction, name='bank-match'),
+
+    # Purchase Orders
+    path('po/', include([
+        path('', prem_views.PurchaseOrderListView.as_view(), name='po-list'),
+        path('add/', prem_views.PurchaseOrderCreateView.as_view(), name='po-create'),
+        path('<int:pk>/', prem_views.PurchaseOrderDetailView.as_view(), name='po-detail'),
+    ])),
+
+    # 1099 Contractors
+    path('contractors/', include([
+        path('', prem_views.ContractorListView.as_view(), name='contractor-list'),
+        path('add/', prem_views.ContractorCreateView.as_view(), name='contractor-create'),
+        path('<int:pk>/edit/', prem_views.ContractorUpdateView.as_view(), name='contractor-edit'),
+    ])),
+    path('contractor-payment/add/', prem_views.ContractorPaymentCreateView.as_view(), name='contractor-payment-create'),
+    path('1099/<int:contractor_pk>/<int:year>/', prem_views.generate_1099, name='generate-1099'),
+
+    # Tax Forms
+    path('tax-forms/', include([
+        path('', prem_views.TaxFormListView.as_view(), name='tax-form-list'),
+        path('<int:pk>/', prem_views.TaxFormDetailView.as_view(), name='tax-form-detail'),
+        path('<int:pk>/pdf/', prem_views.tax_form_pdf, name='tax-form-pdf'),
+    ])),
+
+    # Data Import
+    path('import/', include([
+        path('', prem_views.DataImportListView.as_view(), name='import-list'),
+        path('add/', prem_views.DataImportCreateView.as_view(), name='import-create'),
+    ])),
+
+    # Contracts
+    path('contracts/', include([
+        path('', prem_views.ContractListView.as_view(), name='contract-list'),
+        path('add/', prem_views.ContractCreateView.as_view(), name='contract-create'),
+        path('<int:pk>/', prem_views.ContractDetailView.as_view(), name='contract-detail'),
+        path('<int:pk>/send/', prem_views.contract_send, name='contract-send'),
+        path('<int:pk>/sign/', prem_views.contract_sign, name='contract-sign'),
+    ])),
+
+    # AI Estimate Templates
+    path('templates/', include([
+        path('', prem_views.EstimateTemplateListView.as_view(), name='template-list'),
+        path('add/', prem_views.EstimateTemplateCreateView.as_view(), name='template-create'),
+        path('<int:pk>/edit/', prem_views.EstimateTemplateUpdateView.as_view(), name='template-edit'),
+    ])),
+    path('ai-estimate/<int:template_pk>/', prem_views.ai_estimate, name='ai-estimate'),
 ]

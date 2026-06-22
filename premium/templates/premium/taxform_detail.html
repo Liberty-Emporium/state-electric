@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ tax_form.get_form_type_display }} — {{ tax_form.recipient_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div><h1>{{ tax_form.get_form_type_display }}</h1><p class="text-muted">{{ tax_form.recipient_name }} · {{ tax_form.tax_year }}</p></div>
+  <a href="{% url 'tax-form-pdf' tax_form.pk %}" class="btn btn-primary">Download PDF</a>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-sm-6"><p><strong>Tax ID:</strong> {{ tax_form.recipient_tax_id|default:"—" }}</p></div>
+      <div class="col-sm-6"><p><strong>Status:</strong> {{ tax_form.get_status_display }}</p></div>
+    </div>
+    <div class="row">
+      <div class="col-sm-6"><p><strong>Total Compensation:</strong> ${{ tax_form.total_compensation|floatformat:2 }}</p></div>
+      <div class="col-sm-6"><p><strong>Federal Withheld:</strong> ${{ tax_form.federal_withheld|floatformat:2 }}</p></div>
+    </div>
+    <div class="row">
+      <div class="col-sm-6"><p><strong>State Withheld:</strong> ${{ tax_form.state_withheld|floatformat:2 }}</p></div>
+      <div class="col-sm-6"><p><strong>SS Wages:</strong> ${{ tax_form.social_security_wages|floatformat:2 }}</p></div>
+    </div>
+    <div class="row">
+      <div class="col-sm-6"><p><strong>Medicare Wages:</strong> ${{ tax_form.medicare_wages|floatformat:2 }}</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

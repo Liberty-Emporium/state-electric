@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><style>
+body{font-family:Arial,sans-serif;color:#333;margin:40px}
+h1{color:#1e3a5f;border-bottom:3px solid #1e3a5f;padding-bottom:10px}
+table{width:100%;border-collapse:collapse;margin:20px 0}
+th,td{padding:10px 14px;text-align:left;border:1px solid #ddd}
+th{background:#f5f5f5;font-weight:bold}
+.box{border:2px solid #333;padding:20px;margin:20px 0;border-radius:4px}
+.header{display:flex;justify-content:space-between;margin-bottom:30px}
+.company{font-size:28px;font-weight:bold;color:#1e3a5f}
+.form-title{font-size:20px;font-weight:bold;text-align:center;margin:20px 0}
+</style></head><body>
+<div class="header">
+  <div><div class="company">State Electric</div><div>Tax Form Filing</div></div>
+  <div style="text-align:right"><div style="font-size:24px;font-weight:bold">{{ tax_form.get_form_type_display }}</div><div>Tax Year {{ tax_form.tax_year }}</div></div>
+</div>
+<div class="form-title">{{ tax_form.get_form_type_display }}</div>
+<table>
+  <tr><td><strong>Recipient</strong></td><td>{{ tax_form.recipient_name }}</td><td><strong>Tax ID</strong></td><td>{{ tax_form.recipient_tax_id|default:"—" }}</td></tr>
+  <tr><td colspan="4"><strong>Address:</strong> {{ tax_form.recipient_address|default:"—" }}</td></tr>
+</table>
+<table>
+  <tr><th>Description</th><th>Amount</th></tr>
+  <tr><td>Total Compensation</td><td>${{ tax_form.total_compensation|floatformat:2 }}</td></tr>
+  <tr><td>Federal Income Tax Withheld</td><td>${{ tax_form.federal_withheld|floatformat:2 }}</td></tr>
+  <tr><td>State Income Tax Withheld</td><td>${{ tax_form.state_withheld|floatformat:2 }}</td></tr>
+  <tr><td>Social Security Wages</td><td>${{ tax_form.social_security_wages|floatformat:2 }}</td></tr>
+  <tr><td>Medicare Wages & Tips</td><td>${{ tax_form.medicare_wages|floatformat:2 }}</td></tr>
+</table>
+<div class="box">
+  <p>This is a generated tax form for filing purposes. Please verify all amounts before filing with the IRS.</p>
+  <p>Generated on: {{ tax_form.created_at|date:"F d, Y" }}</p>
+</div>
+</body></html>

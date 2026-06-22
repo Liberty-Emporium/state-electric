@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}AI Estimate — {{ template.name }}{% endblock %}
+{% block content %}
+<h1>🤖 Generate Estimate from Template</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <h5>{{ template.name }}</h5>
+    <p class="text-muted">{{ template.description }}</p>
+    <div class="row">
+      <div class="col-sm-6"><p><strong>Job Type:</strong> {{ template.job_type|default:"General" }}</p></div>
+      <div class="col-sm-6"><p><strong>Division:</strong> {{ template.division.display_name }}</p></div>
+      <div class="col-sm-6"><p><strong>Labor:</strong> {{ template.base_labor_hours }}h @ ${{ template.labor_rate }}/hr</p></div>
+      <div class="col-sm-6"><p><strong>Materials:</strong> ${{ template.material_estimate|floatformat:2 }}</p></div>
+      <div class="col-sm-6"><p><strong>Overhead:</strong> {{ template.overhead_percent }}%</p></div>
+      <div class="col-sm-6"><p><strong>Profit Margin:</strong> {{ template.profit_margin_percent }}%</p></div>
+    </div>
+    <hr>
+    <p class="fs-4 fw-bold">Estimated Total: ${{ estimated_total|floatformat:2 }}</p>
+    <form method="post">{% csrf_token %}
+      <button type="submit" class="btn btn-success btn-lg">Generate Estimate</button>
+      <a href="{% url 'template-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Contractor Payment — State Electric{% endblock %}
+{% block content %}
+<h1>Record Contractor Payment</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Contractor</label>{{ form.contractor }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Amount</label>{{ form.amount }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Date</label>{{ form.date }}</div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Description</label>{{ form.description }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Job</label>{{ form.job }}</div>
+        <div class="col-md-3 mb-3"><label class="form-label">Division</label>{{ form.division }}</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Record Payment</button>
+      <a href="{% url 'contractor-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Expenses — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>💸 Expenses</h1>
+  <a href="{% url 'expense-create' %}" class="btn btn-primary">+ New Expense</a>
+</div>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-auto">
+    <select name="status" class="form-control form-control-sm" onchange="this.form.submit()">
+      <option value="">All</option>
+      <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+      <option value="approved" {% if status_filter == "approved" %}selected{% endif %}>Approved</option>
+      <option value="rejected" {% if status_filter == "rejected" %}selected{% endif %}>Rejected</option>
+      <option value="reimbursed" {% if status_filter == "reimbursed" %}selected{% endif %}>Reimbursed</option>
+    </select>
+  </div>
+  <div class="col-auto ms-auto"><strong>Total: ${{ total_amount|floatformat:2 }}</strong></div>
+</form>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Description</th><th>Category</th><th>Amount</th><th>Date</th><th>Job</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for exp in expenses %}
+          <tr>
+            <td>{{ exp.description }}</td>
+            <td>{{ exp.category.name }}</td>
+            <td>${{ exp.amount|floatformat:2 }}</td>
+            <td>{{ exp.date|date:"M d" }}</td>
+            <td>{% if exp.job %}<a href="{% url 'job-detail' exp.job.pk %}">{{ exp.job.title }}</a>{% endif %}</td>
+            <td><span class="badge badge-{{ exp.status }}">{{ exp.get_status_display }}</span></td>
+            <td><a href="{% url 'expense-edit' exp.pk %}" class="btn btn-sm btn-outline-light">Edit</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted">No expenses found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% if page_obj.has_other_pages %}
+<nav class="mt-3"><ul class="pagination justify-content-center">
+  {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+  {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

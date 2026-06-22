@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Recurring Invoices — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>🔄 Recurring Invoices</h1>
+  <a href="{% url 'recurring-create' %}" class="btn btn-primary">+ New Recurring</a>
+</div>
+<div class="card-grid">
+  {% for r in recurrings %}
+  <div class="card">
+    <div class="card-body">
+      <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
+      <h5 class="mt-2 mb-1"><a href="{% url 'recurring-detail' r.pk %}" class="text-white">{{ r.customer.name }}</a></h5>
+      <p class="text-muted small">{{ r.get_frequency_display }} · {{ r.division.display_name }}</p>
+      <p class="small mb-0">Next: {{ r.next_invoice_date|date:"M d, Y" }}</p>
+      <form method="post" action="{% url 'recurring-generate' r.pk %}" class="mt-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success">Generate Now</button>
+      </form>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state"><div class="empty-state-icon">🔄</div><p>No recurring invoices.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

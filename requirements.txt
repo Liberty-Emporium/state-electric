@@ -6,3 +6,5 @@ weasyprint>=60.0
 gunicorn>=21.0
 django-extensions>=3.2
 dj-database-url>=2.0
+openpyxl>=3.0
+xlsxwriter>=3.0

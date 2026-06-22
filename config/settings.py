@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     'invoicing',
     'reporting',
     'standard',
+    'premium',
     # Django
     'django.contrib.admin',
     'django.contrib.auth',

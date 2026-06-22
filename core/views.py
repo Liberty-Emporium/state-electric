@@ -115,6 +115,11 @@ def dashboard(request):
         'active_jobs': active_jobs.count(),
         'pending_estimates': pending_estimates.count(),
     }
+    try:
+        from premium.models import RecurringInvoice
+        ctx['active_recurring'] = RecurringInvoice.objects.filter(status='active').count()
+    except Exception:
+        ctx['active_recurring'] = 0
     return render(request, 'core/dashboard.html', context)
 
 

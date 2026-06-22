@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Data Imports — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>📥 Data Imports</h1>
+  <a href="{% url 'import-create' %}" class="btn btn-primary">+ New Import</a>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Type</th><th>File</th><th>Status</th><th>Imported</th><th>Errors</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for imp in imports %}
+          <tr>
+            <td>{{ imp.get_import_type_display }}</td>
+            <td>{{ imp.file.name|truncatechars:30 }}</td>
+            <td><span class="badge badge-{{ imp.status }}">{{ imp.get_status_display }}</span></td>
+            <td>{{ imp.imported_rows }}/{{ imp.total_rows }}</td>
+            <td>{{ imp.error_rows }}</td>
+            <td>{{ imp.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted">No imports yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
