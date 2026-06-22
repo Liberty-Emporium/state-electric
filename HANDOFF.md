@@ -28,7 +28,9 @@ State Electric is an electrical services corporation that wants to replace Quick
 
 ## 🏢 COMPANY INFO
 
-- **Company:** State Electric (electrical services corporation)
+- **Company:** State Electric & Lighting Co., Inc. (electrical services corporation)
+- **Owners:** John Elliott Teague and Rhonda M. Teague
+- **Address:** 8749 Pleasant Hill Church Rd, Liberty, NC 27298
 - **Structure:** Umbrella company with TWO divisions that must stay SEPARATE
   - Commercial Electrical
   - Residential Electrical
@@ -189,7 +191,7 @@ Key points:
 
 ## 📞 CUSTOMER CONTACT
 
-The customer is John and Rhonda Tig at State Electric.
+The customer is John Elliott Teague and Rhonda M. Teague at State Electric & Lighting Co., Inc.
 Jay has been communicating with them via text/audio messages.
 All feature decisions have been approved by both Jay and John/Rhonda.
 

@@ -15,7 +15,7 @@ Last-Modified: Sun, 21 Jun 2026 04:02:03 GMT
 ## PARTIES
 
 **Developer:** Alexander AI Solutions (Jay Alexander)
-**Client:** State Electric (Electrical Services Corporation)
+**Client:** State Electric & Lighting Co., Inc. (Electrical Services Corporation)
 
 EFFECTIVE DATE: _______________
 
@@ -27,25 +27,18 @@ Developer will design, build, and deploy a custom web-based business management 
 
 ---
 
-## 2. FEATURE TIERS & PRICING
+## 2. PRICING
 
-| Tier | Price | Status |
-|------|-------|--------|
-| **Essential** | $1,500 | Included |
-| **Standard** | $2,000 | Included |
-| **Premium (AI Features)** | $3,300 | Optional Add-On |
-
-**Total Contract Price (Essential + Standard):** $3,500 one-time fee
+**Total Contract Price: $3,500 one-time fee**
+(Includes all features: Essential + Standard + Premium)
 
 **Payment Schedule:**
 - 50% due upon signing: $1,750
 - 50% due upon completion and deployment: $1,750
 
-**Premium tier (AI estimates, advanced analytics, tax form generation)** is available as an optional add-on for an additional $3,300 at any time.
-
 ---
 
-## 3. WHAT'S INCLUDED (Essential + Standard)
+## 3. WHAT'S INCLUDED (All Features)
 
 ### Essential Features
 - Customer database (add, edit, manage customers)
@@ -179,7 +172,7 @@ Jay Alexander, Alexander AI Solutions
 **Client:**
 
 ___________________________ Date: ___________
-State Electric, Authorized Representative
+John Elliott Teague, Owner — State Electric & Lighting Co., Inc.
 
-___________________________
-Printed Name & Title
+___________________________ Date: ___________
+Rhonda M. Teague, Owner — State Electric & Lighting Co., Inc.
