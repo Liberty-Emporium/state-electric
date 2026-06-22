@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
-"""Entrypoint that properly handles the PORT env var on Railway."""
+"""Entrypoint that handles migrations, seeding, and starting gunicorn."""
 import os
 import sys
+import subprocess
 
-# Railway sometimes sets PORT to literal '$PORT' string
-# Try multiple sources to get the actual port
-port = os.environ.get('PORT', '')
-if port == '$PORT' or not port:
-    # Try to find port from Railway's environment
-    port = '8080'
-    # Check if there's a PORT_FILE or similar
-    for key in ['RAILWAY_PORT', 'SERVER_PORT', 'HTTP_PORT']:
-        val = os.environ.get(key, '')
-        if val and val != '$PORT':
-            port = val
-            break
+port = '8080'
 
-print(f"[entrypoint] PORT env var = {repr(os.environ.get('PORT'))}", flush=True)
-print(f"[entrypoint] Using port: {port}", flush=True)
-
-# Run migrations (non-critical if they fail)
 print("[entrypoint] Running migrations...", flush=True)
-os.system('python manage.py migrate --noinput')
+ret = subprocess.run(['python', 'manage.py', 'migrate', '--noinput'], capture_output=False)
+print(f"[entrypoint] Migrations returned: {ret.returncode}", flush=True)
 
-# Exec gunicorn, replacing this process entirely
+# Seed data if divisions don't exist
+print("[entrypoint] Checking if seed is needed...", flush=True)
+try:
+    import django
+    django.setup()
+    from core.models import Division, User
+    if not Division.objects.exists():
+        print("[entrypoint] Seeding initial data...", flush=True)
+        subprocess.run(['python', 'manage.py', 'seed_data'], capture_output=False)
+    else:
+        print("[entrypoint] Database already has data, skipping seed.", flush=True)
+    
+    # Create superuser if not exists
+    if not User.objects.filter(username='jay').exists():
+        print("[entrypoint] Creating superuser...", flush=True)
+        User.objects.create_superuser('jay', 'jay@alexanderai.site', 'password123')
+        print("[entrypoint] Superuser created: jay / password123", flush=True)
+except Exception as e:
+    print(f"[entrypoint] Seed check failed (may need migration first): {e}", flush=True)
+
 print(f"[entrypoint] Starting gunicorn on port {port}...", flush=True)
 os.execvp('gunicorn', [
     'gunicorn',

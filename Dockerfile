@@ -19,6 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Railway does NOT inject $PORT into Dockerfile builds.
-# Hardcode 8080 which is Railway's default port for containers.
-CMD ["sh", "-c", "python manage.py migrate --noinput 2>/dev/null; exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --timeout 30 --workers 2 --threads 4 --access-logfile - --error-logfile -"]
+# Entrypoint handles migrations, seeding, and starts gunicorn
+COPY entrypoint.py /app/entrypoint.py
+CMD ["python", "/app/entrypoint.py"]
