@@ -19,8 +19,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Use ENTRYPOINT script that properly handles PORT
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8080", "--timeout", "30", "--workers", "2", "--threads", "4"]
+# Start with a Python script that handles PORT properly
+CMD ["python", "-c", "import os, subprocess; port = os.environ.get('PORT', '8080'); subprocess.run(['python', 'manage.py', 'migrate', '--noinput'], capture_output=True); subprocess.run(['gunicorn', 'config.wsgi:application', '--bind', f'0.0.0.0:{port}', '--timeout', '30', '--workers', '2', '--threads', '4'])"]
