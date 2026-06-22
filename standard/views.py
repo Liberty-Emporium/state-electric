@@ -13,9 +13,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from core.models import Customer, Division, User
+from core.models import Customer, Division, User, Invoice, InvoiceLineItem
 from core.views import DivisionMixin
-from invoicing.models import Invoice, InvoiceLineItem
 from .forms import (
     JobForm, TimeEntryForm, PayPeriodForm, PayrollEntryForm,
     EstimateForm, EstimateLineFormSet,
