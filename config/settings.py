@@ -104,6 +104,13 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 CSRF_COOKIE_NAME = 'state_electric_csrftoken'
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-ef34a.up.railway.app',
+    'https://*.up.railway.app',
+]
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
