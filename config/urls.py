@@ -8,7 +8,13 @@ from core.pwa_views import pwa_manifest, service_worker
 from invoicing import views as inv_views
 from reporting import views as report_views
 
+from django.http import JsonResponse
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
+    path('health/', health_check, name='health'),
     path('admin/', admin.site.urls),
 
     # Auth
