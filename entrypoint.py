@@ -14,16 +14,7 @@ result = subprocess.run(
 )
 print(f"[entrypoint] Collectstatic exit code: {result.returncode}", flush=True)
 
-# Step 1: Make migrations (in case model changes weren't captured)
-print("[entrypoint] Making migrations...", flush=True)
-result = subprocess.run(
-    [sys.executable, 'manage.py', 'makemigrations', '--noinput'],
-    capture_output=True, text=True
-)
-if result.stdout:
-    print(f"[entrypoint] Makemigrations: {result.stdout[:300]}", flush=True)
-
-# Step 2: Run migrations
+# Step 1: Run migrations
 print("[entrypoint] Running migrations...", flush=True)
 result = subprocess.run(
     [sys.executable, 'manage.py', 'migrate', '--noinput'],
