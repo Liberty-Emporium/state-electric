@@ -98,6 +98,8 @@ class Migration(migrations.Migration):
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('reference', models.CharField(blank=True, max_length=100)),
                 ('status', models.CharField(max_length=20, default='unmatched', choices=[('unmatched', 'Unmatched'), ('matched', 'Matched'), ('reconciled', 'Reconciled'), ('excluded', 'Excluded')])),
+                ('matched_payment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='core.payment')),
+                ('matched_expense', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='premium.expense')),
                 ('notes', models.TextField(blank=True)),
                 ('imported_at', models.DateTimeField(auto_now_add=True)),
                 ('bank_account', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to='premium.bankaccount')),

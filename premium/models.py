@@ -153,7 +153,7 @@ class BankTransaction(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)  # positive = deposit, negative = withdrawal
     reference = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unmatched')
-    matched_payment = models.ForeignKey('invoicing.Payment', on_delete=models.SET_NULL, null=True, blank=True)
+    matched_payment = models.ForeignKey('core.Payment', on_delete=models.SET_NULL, null=True, blank=True)
     matched_expense = models.ForeignKey(Expense, on_delete=models.SET_NULL, null=True, blank=True)
     notes = models.TextField(blank=True)
     imported_at = models.DateTimeField(auto_now_add=True)
