@@ -69,9 +69,16 @@ def dashboard(request):
         total=Sum('payments__amount')
     )['total'] or 0
 
-    outstanding = invoice_qs.filter(status__in=['sent', 'overdue']).aggregate(
-        total=Sum(F('lines__quantity') * F('lines__rate')) * (1 + F('tax_rate')) - Sum('payments__amount')
-    )['total'] or 0
+    # Calculate outstanding: sum of line items minus payments
+    try:
+        outstanding_invoices = invoice_qs.filter(status__in=['sent', 'overdue'])
+        outstanding = 0
+        for inv in outstanding_invoices:
+            inv_total = sum(line.quantity * line.rate for line in inv.lines.all()) * (1 + inv.tax_rate)
+            paid_total = sum(p.amount for p in inv.payments.all())
+            outstanding += (inv_total - paid_total)
+    except Exception:
+        outstanding = 0
 
     overdue_count = invoice_qs.filter(status='overdue').count()
     total_customers = customer_qs.count()
