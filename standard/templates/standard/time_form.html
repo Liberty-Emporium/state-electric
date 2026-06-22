@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Time Entry — State Electric{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Time Entry{% else %}Log Time{% endif %}</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Employee</label>
+          {{ form.employee }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Job</label>
+          {{ form.job }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Date</label>
+          {{ form.date }}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Hours</label>
+          {{ form.hours }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Clock In</label>
+          {{ form.clock_in }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Clock Out</label>
+          {{ form.clock_out }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        {{ form.description }}
+      </div>
+      <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Save{% else %}Log Time{% endif %}</button>
+      <a href="{% url 'time-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

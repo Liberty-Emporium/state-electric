@@ -29,6 +29,14 @@
     <div class="stat-num">{{ total_customers }}</div>
     <div class="stat-label">Customers</div>
   </div>
+  <div class="stat-card purple">
+    <div class="stat-num">{{ active_jobs }}</div>
+    <div class="stat-label">Active Jobs</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-num">{{ pending_estimates }}</div>
+    <div class="stat-label">Pending Estimates</div>
+  </div>
 </div>
 
 <!-- Revenue by Division (owner only) -->
@@ -84,6 +92,8 @@
 <div class="flex gap-2 mt-3" style="flex-wrap:wrap;">
   <a href="{% url 'invoice-create' %}" class="btn btn-primary">+ New Invoice</a>
   <a href="{% url 'customer-create' %}" class="btn btn-ghost">+ New Customer</a>
+  <a href="{% url 'job-create' %}" class="btn btn-ghost">+ New Job</a>
+  <a href="{% url 'estimate-create' %}" class="btn btn-ghost">+ New Estimate</a>
   <a href="{% url 'reports' %}" class="btn btn-ghost">📈 Reports</a>
 </div>
 {% endblock %}

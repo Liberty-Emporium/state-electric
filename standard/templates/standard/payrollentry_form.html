@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Payroll Entry — State Electric{% endblock %}
+{% block content %}
+<h1>Edit Payroll Entry</h1>
+<div class="text-muted mb-3">{{ entry.employee.get_full_name }} · {{ pay_period.start_date|date:"M d" }} — {{ pay_period.end_date|date:"M d" }}</div>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Regular Hours</label>
+          {{ form.regular_hours }}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Overtime Hours</label>
+          {{ form.overtime_hours }}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Gross Pay</label>
+          {{ form.gross_pay }}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Other Deductions</label>
+          {{ form.other_deductions }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        {{ form.notes }}
+      </div>
+      <button type="submit" class="btn btn-primary">Save & Calculate</button>
+      <a href="{% url 'payperiod-detail' pay_period.pk %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

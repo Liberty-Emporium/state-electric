@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Pay Period Detail — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1>{{ pay_period.division.display_name }}</h1>
+    <p class="text-muted">{{ pay_period.start_date|date:"M d" }} — {{ pay_period.end_date|date:"M d, Y" }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="post" action="{% url 'payroll-calculate' pay_period.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-primary">Calculate All Taxes</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr>
+          <th>Employee</th><th>Reg Hrs</th><th>OT Hrs</th>
+          <th>Gross</th><th>Federal</th><th>State</th><th>FICA</th><th>Net</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for entry in entries %}
+          <tr>
+            <td>{{ entry.employee.get_full_name|default:entry.employee.username }}</td>
+            <td>{{ entry.regular_hours }}</td>
+            <td>{{ entry.overtime_hours }}</td>
+            <td>${{ entry.gross_pay|floatformat:2 }}</td>
+            <td>${{ entry.federal_tax|floatformat:2 }}</td>
+            <td>${{ entry.state_tax|floatformat:2 }}</td>
+            <td>${{ entry.fica_ss|floatformat:2 }}</td>
+            <td><strong>${{ entry.net_pay|floatformat:2 }}</strong></td>
+            <td>
+              <a href="{% url 'payroll-entry-edit' pay_period.pk entry.pk %}" class="btn btn-sm btn-outline-light">Edit</a>
+              <a href="{% url 'paystub-pdf' pay_period.pk entry.pk %}" class="btn btn-sm btn-outline-light">PDF</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted">No payroll entries.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold">
+            <td colspan="3">Totals</td>
+            <td>${{ pay_period.total_gross|floatformat:2 }}</td>
+            <td colspan="4"></td>
+            <td>${{ pay_period.total_net|floatformat:2 }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

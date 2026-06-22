@@ -95,6 +95,15 @@ def dashboard(request):
     # Recent invoices
     recent_invoices = invoice_qs.select_related('customer').order_by('-created_at')[:10]
 
+    # Standard tier stats
+    from standard.models import Job, Estimate
+    active_jobs = Job.objects.filter(status__in=['scheduled', 'in_progress'])
+    pending_estimates = Estimate.objects.filter(status__in=['draft', 'sent'])
+    if not user.is_owner:
+        if user.division:
+            active_jobs = active_jobs.filter(division=user.division)
+            pending_estimates = pending_estimates.filter(division=user.division)
+
     context = {
         'total_revenue': total_revenue,
         'outstanding': outstanding,
@@ -103,6 +112,8 @@ def dashboard(request):
         'revenue_by_division': revenue_by_division,
         'recent_invoices': recent_invoices,
         'divisions': divisions,
+        'active_jobs': active_jobs.count(),
+        'pending_estimates': pending_estimates.count(),
     }
     return render(request, 'core/dashboard.html', context)
 

@@ -1,55 +1,47 @@
-"""Admin configuration for State Electric."""
+"""
+Admin configuration for State Electric.
+"""
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import Division, User, EmployeeProfile, Customer, Invoice, InvoiceLineItem, Payment
 
-
-class EmployeeProfileInline(admin.StackedInline):
-    model = EmployeeProfile
-    can_delete = False
-
+from core.models import User, Division, Customer, EmployeeProfile, Invoice, InvoiceLineItem, Payment
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'division', 'is_active_employee']
-    list_filter = ['role', 'division', 'is_active_employee', 'is_staff']
-    fieldsets = UserAdmin.fieldsets + (
-        ('State Electric', {'fields': ('role', 'division', 'phone', 'is_active_employee')}),
-    )
-    inlines = [EmployeeProfileInline]
-
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['username', 'first_name', 'last_name', 'role', 'division', 'is_active']
+    list_filter = ['role', 'division', 'is_active']
+    search_fields = ['username', 'first_name', 'last_name']
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
-    list_display = ['display_name', 'employee_count', 'max_employees']
-
-
-class InvoiceLineItemInline(admin.TabularInline):
-    model = InvoiceLineItem
-    extra = 1
-
-
-class PaymentInline(admin.TabularInline):
-    model = Payment
-    extra = 0
-
-
-@admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'customer', 'status', 'total_amount', 'balance_due', 'issue_date']
-    list_filter = ['status', 'issue_date']
-    search_fields = ['invoice_number', 'customer__name']
-    inlines = [InvoiceLineItemInline, PaymentInline]
-
+    list_display = ['display_name', 'employee_count', 'max_employees', 'is_at_capacity']
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['name', 'company', 'division', 'phone', 'is_active']
+    list_display = ['name', 'company', 'division', 'is_active', 'created_at']
     list_filter = ['division', 'is_active']
-    search_fields = ['name', 'company']
+    search_fields = ['name', 'company', 'address', 'phone', 'email']
 
+@admin.register(EmployeeProfile)
+class EmployeeProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'hire_date', 'pay_rate', 'pay_type', 'title']
+    list_filter = ['pay_type']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'title']
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ['invoice_number', 'customer', 'status', 'issue_date', 'due_date', 'total_amount', 'balance_due']
+    list_filter = ['status', 'issue_date']
+    search_fields = ['invoice_number', 'customer__name']
+    date_hierarchy = 'issue_date'
+
+@admin.register(InvoiceLineItem)
+class InvoiceLineItemAdmin(admin.ModelAdmin):
+    list_display = ['invoice', 'description', 'quantity', 'rate', 'amount']
+    search_fields = ['invoice__invoice_number', 'description']
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['invoice', 'amount', 'date', 'method', 'recorded_by']
     list_filter = ['method', 'date']
+    search_fields = ['invoice__invoice_number', 'reference']
+    date_hierarchy = 'date'

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Estimate Form — State Electric{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Estimate{% else %}New Estimate{% endif %}</h1>
+<div class="card mt-3">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Customer</label>
+          {{ form.customer }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Division</label>
+          {{ form.division }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Date</label>
+          {{ form.date }}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Expiry Date</label>
+          {{ form.expiry_date }}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Tax Rate</label>
+          {{ form.tax_rate }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        {{ form.notes }}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Internal Notes</label>
+        {{ form.internal_notes }}
+      </div>
+
+      <h5 class="mt-4">Line Items</h5>
+      {{ line_formset.management_form }}
+      <div class="table-responsive">
+        <table class="table table-sm" id="line-items">
+          <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Order</th><th></th></tr></thead>
+          <tbody>
+            {% for form in line_formset %}
+            <tr>
+              <td>{{ form.description }}</td>
+              <td>{{ form.quantity }}</td>
+              <td>{{ form.rate }}</td>
+              <td>{{ form.sort_order }}</td>
+              <td>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Save Changes{% else %}Create Estimate{% endif %}</button>
+      <a href="{% url 'estimate-list' %}" class="btn btn-outline-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

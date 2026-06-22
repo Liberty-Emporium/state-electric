@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Pay Periods — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>💰 Payroll</h1>
+  <a href="{% url 'payperiod-create' %}" class="btn btn-primary">+ New Pay Period</a>
+</div>
+
+<div class="card-grid">
+  {% for pp in pay_periods %}
+  <div class="card">
+    <div class="card-body">
+      <span class="badge badge-{{ pp.status }}">{{ pp.get_status_display }}</span>
+      <h5 class="mt-2 mb-1"><a href="{% url 'payperiod-detail' pp.pk %}" class="text-white">{{ pp.division.display_name }}</a></h5>
+      <p class="text-muted small">{{ pp.start_date|date:"M d" }} — {{ pp.end_date|date:"M d, Y" }}</p>
+      <p class="small mb-0">👥 {{ pp.employee_count }} employees</p>
+      <p class="small mb-0">💵 Gross: ${{ pp.total_gross|floatformat:2 }}</p>
+      <p class="small">✅ Net: ${{ pp.total_net|floatformat:2 }}</p>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state">
+    <div class="empty-state-icon">💰</div>
+    <p>No pay periods yet.</p>
+    <a href="{% url 'payperiod-create' %}" class="btn btn-primary">Create First Pay Period</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

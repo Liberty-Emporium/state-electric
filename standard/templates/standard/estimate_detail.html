@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Estimate Detail — State Electric{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1>Estimate #{{ estimate.estimate_number }}</h1>
+    <p class="text-muted mb-0">{{ estimate.customer.name }} · {{ estimate.division.display_name }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'estimate-edit' estimate.pk %}" class="btn btn-outline-light btn-sm">Edit</a>
+    {% if estimate.status == 'accepted' and not estimate.converted_invoice_id %}
+    <form method="post" action="{% url 'estimate-convert' estimate.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-success">Convert to Invoice</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex gap-2 mb-3">
+      <span class="badge badge-{{ estimate.status }}">{{ estimate.get_status_display }}</span>
+    </div>
+    <div class="row">
+      <div class="col-sm-6">
+        <p><strong>Date:</strong> {{ estimate.date|date:"M d, Y" }}</p>
+        <p><strong>Expires:</strong> {{ estimate.expiry_date|date:"M d, Y"|default:"—" }}</p>
+      </div>
+      <div class="col-sm-6">
+        <p><strong>Tax Rate:</strong> {{ estimate.tax_rate|floatformat:4 }}</p>
+        <p><strong>Total:</strong> <span class="fs-4">${{ estimate.total|floatformat:2 }}</span></p>
+      </div>
+    </div>
+    {% if estimate.notes %}
+    <p><strong>Notes:</strong> {{ estimate.notes }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h5>Line Items</h5>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for line in estimate.lines.all %}
+          <tr>
+            <td>{{ line.description }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>${{ line.rate|floatformat:2 }}</td>
+            <td>${{ line.amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3" class="text-end">Subtotal</td><td>${{ estimate.subtotal|floatformat:2 }}</td></tr>
+          <tr><td colspan="3" class="text-end">Tax</td><td>${{ estimate.tax_amount|floatformat:2 }}</td></tr>
+          <tr><td colspan="3" class="text-end"><strong>Total</strong></td><td><strong>${{ estimate.total|floatformat:2 }}</strong></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

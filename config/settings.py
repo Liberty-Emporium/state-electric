@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'core',
     'invoicing',
     'reporting',
+    'standard',
     # Django
     'django.contrib.admin',
     'django.contrib.auth',
