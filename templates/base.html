@@ -46,13 +46,14 @@
       </button>
     </div>
     <div class="nav-links" id="nav-links">
-      <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Dashboard</a>
-      <a href="{% url 'customer-list' %}" class="{% if 'customer' in request.resolver_match.url_name %}active{% endif %}">👥 Customers</a>
-      <a href="{% url 'invoice-list' %}" class="{% if 'invoice' in request.resolver_match.url_name %}active{% endif %}">📄 Invoices</a>
-      <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">📈 Reports</a>
+      <a href="{% url 'dashboard' %}" class="{% if request.resolver_match and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Dashboard</a>
+      <a href="{% url 'customer-list' %}" class="{% if request.resolver_match and 'customer' in request.resolver_match.url_name %}active{% endif %}">👥 Customers</a>
+      <a href="{% url 'invoice-list' %}" class="{% if request.resolver_match and 'invoice' in request.resolver_match.url_name %}active{% endif %}">📄 Invoices</a>
+      <a href="{% url 'reports' %}" class="{% if request.resolver_match and request.resolver_match.url_name == 'reports' %}active{% endif %}">📈 Reports</a>
       {% if user.is_superuser %}
       <a href="/admin/">⚙️ Admin</a>
       {% endif %}
+      {% if user.is_authenticated %}
       <div class="nav-logout-row">
         <span class="nav-user-info">{{ user.get_full_name|default:user.username }}</span>
         <form method="post" action="{% url 'logout' %}">
@@ -60,6 +61,7 @@
           <button type="submit" class="btn btn-ghost btn-sm">Logout</button>
         </form>
       </div>
+      {% endif %}
     </div>
   </nav>
 

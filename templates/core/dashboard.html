@@ -7,7 +7,7 @@
 <div class="page-header">
   <h1>📊 Dashboard</h1>
   <div class="text-muted text-sm">
-    {% if user.is_owner %}All Divisions{% else %}{{ user.division.display_name }}{% endif %}
+    {% if user.is_owner %}All Divisions{% elif user.division %}{{ user.division.display_name }}{% else %}No Division{% endif %}
   </div>
 </div>
 

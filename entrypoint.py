@@ -6,6 +6,14 @@ import sys
 
 print("[entrypoint] Starting...", flush=True)
 
+# Step 0: Collect static files
+print("[entrypoint] Collecting static files...", flush=True)
+result = subprocess.run(
+    [sys.executable, 'manage.py', 'collectstatic', '--noinput'],
+    capture_output=True, text=True
+)
+print(f"[entrypoint] Collectstatic exit code: {result.returncode}", flush=True)
+
 # Step 1: Run migrations
 print("[entrypoint] Running migrations...", flush=True)
 result = subprocess.run(

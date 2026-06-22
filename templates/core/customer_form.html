@@ -50,13 +50,13 @@
     <div class="flex gap-2 mt-3">
       <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update{% else %}Create{% endif %} Customer</button>
       <a href="{% url 'customer-list' %}" class="btn btn-ghost">Cancel</a>
-      {% if form.instance.pk %}
-      <form method="post" action="{% url 'customer-delete' form.instance.pk %}" style="margin-left:auto;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this customer?')">Delete</button>
-      </form>
-      {% endif %}
     </div>
   </form>
+  {% if form.instance.pk %}
+  <form method="post" action="{% url 'customer-delete' form.instance.pk %}" style="margin-top:12px;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this customer?')">Delete Customer</button>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}
