@@ -1,43 +1,58 @@
 #!/usr/bin/env python3
-"""Entrypoint that handles migrations, seeding, and starting gunicorn."""
+"""Entrypoint: migrate, seed, create superuser, start gunicorn."""
 import os
-import sys
 import subprocess
+import sys
 
-port = '8080'
+print("[entrypoint] Starting...", flush=True)
 
+# Step 1: Run migrations
 print("[entrypoint] Running migrations...", flush=True)
-ret = subprocess.run(['python', 'manage.py', 'migrate', '--noinput'], capture_output=False)
-print(f"[entrypoint] Migrations returned: {ret.returncode}", flush=True)
+result = subprocess.run(
+    [sys.executable, 'manage.py', 'migrate', '--noinput'],
+    capture_output=True, text=True
+)
+print(f"[entrypoint] Migrations exit code: {result.returncode}", flush=True)
+if result.stdout:
+    print(f"[entrypoint] STDOUT: {result.stdout[-200:]}", flush=True)
+if result.stderr:
+    print(f"[entrypoint] STDERR: {result.stderr[-200:]}", flush=True)
 
-# Seed data if divisions don't exist
-print("[entrypoint] Checking if seed is needed...", flush=True)
-try:
-    import django
-    django.setup()
-    from core.models import Division, User
-    if not Division.objects.exists():
-        print("[entrypoint] Seeding initial data...", flush=True)
-        subprocess.run(['python', 'manage.py', 'seed_data'], capture_output=False)
-    else:
-        print("[entrypoint] Database already has data, skipping seed.", flush=True)
-    
-    # Create superuser if not exists
-    if not User.objects.filter(username='jay').exists():
-        print("[entrypoint] Creating superuser...", flush=True)
-        User.objects.create_superuser('jay', 'jay@alexanderai.site', 'password123')
-        print("[entrypoint] Superuser created: jay / password123", flush=True)
-except Exception as e:
-    print(f"[entrypoint] Seed check failed (may need migration first): {e}", flush=True)
+# Step 2: Create superuser and seed data via raw subprocess
+print("[entrypoint] Setting up user...", flush=True)
+setup_script = '''
+import os, sys
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+import django
+django.setup()
+from core.models import User, Division
 
-print(f"[entrypoint] Starting gunicorn on port {port}...", flush=True)
+# Create divisions
+Division.objects.get_or_create(name="commercial", defaults={"display_name": "Commercial Electrical"})
+Division.objects.get_or_create(name="residential", defaults={"display_name": "Residential Electrical"})
+
+# Create superuser
+if not User.objects.filter(username="jay").exists():
+    User.objects.create_superuser("jay", "jay@alexanderai.site", "password123")
+    print("Superuser created: jay")
+else:
+    print("Superuser already exists")
+'''
+result = subprocess.run(
+    [sys.executable, '-c', setup_script],
+    capture_output=True, text=True
+)
+print(f"[entrypoint] User setup exit code: {result.returncode}", flush=True)
+if result.stdout:
+    print(f"[entrypoint] STDOUT: {result.stdout}", flush=True)
+if result.stderr:
+    print(f"[entrypoint] STDERR: {result.stderr[-300:]}", flush=True)
+
+# Step 3: Start gunicorn
+print("[entrypoint] Starting gunicorn on port 8080...", flush=True)
 os.execvp('gunicorn', [
-    'gunicorn',
-    'config.wsgi:application',
-    '--bind', f'0.0.0.0:{port}',
-    '--timeout', '30',
-    '--workers', '2',
-    '--threads', '4',
-    '--access-logfile', '-',
-    '--error-logfile', '-',
+    'gunicorn', 'config.wsgi:application',
+    '--bind', '0.0.0.0:8080',
+    '--timeout', '30', '--workers', '2', '--threads', '4',
+    '--access-logfile', '-', '--error-logfile', '-',
 ])
