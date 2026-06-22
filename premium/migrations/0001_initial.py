@@ -9,8 +9,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('core', '__latest__'),
-        ('standard', '__latest__'),
+        ('core', '0002_lineitem_blank_desc'),
+        ('standard', '0001_initial'),
     ]
 
     operations = [
