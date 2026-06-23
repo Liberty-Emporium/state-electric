@@ -29,16 +29,26 @@ Developer will design, build, and deploy a custom web-based business management 
 
 ## 2. PRICING
 
-**Total Contract Price: $2,000 one-time fee**
-(Includes all features: Essential + Standard + Premium)
+**Base Contract Price: $2,000 one-time fee**
+(Includes Essential + Standard + Premium features, excluding AI)
 
 **Payment Schedule:**
 - 50% due upon signing: $1,000
 - 50% due upon completion and deployment: $1,000
 
+### Optional Add-On: AI Features — $1,000
+
+The following AI-powered features are available as an optional add-on for an additional $1,000:
+
+- AI-powered smart estimates (learns from historical jobs to improve quoting)
+- AI-driven analytics and business insights
+- AI-assisted report generation and forecasting
+
+**Total with AI Add-On: $3,000**
+
 ---
 
-## 3. WHAT'S INCLUDED (All Features)
+## 3. WHAT'S INCLUDED ($2,000 Base Package)
 
 ### Essential Features
 - Customer database (add, edit, manage customers)
@@ -59,19 +69,23 @@ Developer will design, build, and deploy a custom web-based business management 
 - PDF generation for invoices, pay stubs, and estimates
 - QuickBooks data migration (all customers, employees, invoices, and payment history transferred to the new app)
 
-### Premium Features (Optional Add-On — $3,300)
-- AI-powered smart estimates (learns from historical jobs)
-- Advanced analytics dashboard
+### Premium Features (included in base package)
 - Tax form generation (W-2, 1099-NEC, quarterly federal and state forms)
 - Subcontractor (1099) management
 - Bank transaction import and email invoice sending
+- Recurring invoices
+- Expense tracking
+- Bank reconciliation
+- Purchase orders
+- Data import (CSV/Excel from QuickBooks)
+- Advanced analytics dashboard
 
 ---
 
 ## 4. HOSTING & MAINTENANCE
 
 - App can be self-hosted on Client's own server at no additional cost
-- Optional managed hosting by Developer: $75/year
+- Optional managed hosting by Developer: $20/month ($240/year)
 - Managed hosting includes: server management, backups, uptime monitoring, and application updates
 
 ---
