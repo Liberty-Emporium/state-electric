@@ -29,12 +29,12 @@ Developer will design, build, and deploy a custom web-based business management 
 
 ## 2. PRICING
 
-**Total Contract Price: $3,500 one-time fee**
+**Total Contract Price: $2,000 one-time fee**
 (Includes all features: Essential + Standard + Premium)
 
 **Payment Schedule:**
-- 50% due upon signing: $1,750
-- 50% due upon completion and deployment: $1,750
+- 50% due upon signing: $1,000
+- 50% due upon completion and deployment: $1,000
 
 ---
 
