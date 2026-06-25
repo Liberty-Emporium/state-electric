@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'invoicing',
     'files',
     'timeclock',
+    'payroll',
     'reports',
     'django.contrib.admin',
     'django.contrib.auth',
