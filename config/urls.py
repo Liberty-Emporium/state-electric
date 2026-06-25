@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/time/', include('timeclock.urls')),
     path('api/files/', include('files.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/contracts/', include('contracts.urls')),
 ]
