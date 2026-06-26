@@ -1,11 +1,10 @@
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from .models import User
-from .serializers import *
 
 
 class IsAdmin(permissions.BasePermission):
@@ -19,7 +18,6 @@ class IsOffice(permissions.BasePermission):
 
 
 class IsOwner(permissions.BasePermission):
-    """Allow access to own data."""
     def has_permission(self, request, view):
         return request.user.is_authenticated
 
@@ -36,11 +34,9 @@ class LoginView(APIView):
         username = request.data.get('username', '')
         password = request.data.get('password', '')
         try:
-            from django.contrib.auth import authenticate
             user = authenticate(username=username, password=password)
             if user is None:
                 return Response({'detail': 'Invalid credentials'}, status=401)
-            from rest_framework_simplejwt.tokens import RefreshToken
             refresh = RefreshToken.for_user(user)
             return Response({
                 'refresh': str(refresh),
@@ -69,27 +65,31 @@ class MeView(APIView):
         return Response({
             'id': user.id,
             'username': user.username,
-            'email': user.email or '',
-            'first_name': user.first_name or '',
-            'last_name': user.last_name or '',
-            'role': user.role,
-            'phone': user.phone or '',
-            'is_active': user.is_active,
+            'email': getattr(user, 'email', '') or '',
+            'first_name': getattr(user, 'first_name', '') or '',
+            'last_name': getattr(user, 'last_name', '') or '',
+            'role': getattr(user, 'role', 'employee'),
+            'phone': getattr(user, 'phone', '') or '',
+            'is_active': getattr(user, 'is_active', True),
         })
 
     def patch(self, request):
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        user = request.user
+        for field in ['first_name', 'last_name', 'email', 'phone']:
+            if field in request.data:
+                setattr(user, field, request.data[field])
+        user.save()
+        return Response({'status': 'updated'})
 
 
 class UserListCreateView(generics.ListCreateAPIView):
-    serializer_class = UserSerializer
+    serializer_class = None
+
+    def get_serializer_class(self):
+        from .serializers import UserSerializer
+        return UserSerializer
 
     def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsOffice()]
         return [IsOffice()]
 
     def get_queryset(self):
@@ -99,12 +99,14 @@ class UserListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(role=role)
         return qs
 
-    def perform_create(self, serializer):
-        serializer.save()
-
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = UserSerializer
+    serializer_class = None
+
+    def get_serializer_class(self):
+        from .serializers import UserSerializer
+        return UserSerializer
+
     permission_classes = [IsOffice]
     queryset = User.objects.all()
 

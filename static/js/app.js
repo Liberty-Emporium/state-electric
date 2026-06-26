@@ -3,7 +3,6 @@ const API = '/api';
 let token = localStorage.getItem('token') || null;
 let currentUser = null;
 
-// Navigation items based on role
 const NAV = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', perm: 'all' },
     { id: 'customers', label: 'Customers', icon: '👥', perm: 'all' },
@@ -16,16 +15,19 @@ const NAV = [
     { id: 'reports', label: 'Reports', icon: '📈', perm: 'office' },
 ];
 
-// API helper
 async function api(path, opts = {}) {
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     if (token) headers['Authorization'] = 'Bearer ' + token;
     const res = await fetch(API + path, { ...opts, headers });
     if (res.status === 401) { doLogout(); return null; }
+    if (!res.ok) {
+        const text = await res.text();
+        console.error(`API Error ${res.status}: ${path}`, text);
+        return null;
+    }
     return res.json();
 }
 
-// Auth
 async function doLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value;
@@ -39,8 +41,7 @@ async function doLogin(e) {
     if (res.ok && data.access) {
         token = data.access;
         localStorage.setItem('token', token);
-        const meData = await api('/auth/me/');
-        currentUser = meData;
+        currentUser = data.user;
         showApp();
     } else {
         document.getElementById('login-error').textContent = data?.detail || 'Invalid credentials';
@@ -55,13 +56,12 @@ function doLogout() {
     document.getElementById('app-screen').classList.remove('active');
 }
 
-// Navigation
 function showApp() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('app-screen').classList.add('active');
     renderNav();
     if (currentUser) {
-        document.getElementById('nav-user').innerHTML = 
+        document.getElementById('nav-user').innerHTML =
             `<strong>${currentUser.first_name || currentUser.username}</strong><br>${currentUser.role || ''}`;
     }
     navigate('dashboard');
@@ -70,23 +70,17 @@ function showApp() {
 function renderNav() {
     const navItems = document.getElementById('nav-items');
     const bottomNav = document.getElementById('bottom-nav') || createBottomNav();
-    
     navItems.innerHTML = '';
     bottomNav.innerHTML = '';
-    
     const role = currentUser?.role || 'employee';
-    
     NAV.forEach(item => {
-        const perm = item.perm;
-        if (perm !== 'all' && (perm === 'office' && role === 'employee')) return;
-        
+        if (item.perm !== 'all' && (item.perm === 'office' && role === 'employee')) return;
         const btn = document.createElement('button');
         btn.className = 'nav-item' + (item.id === 'dashboard' ? ' active' : '');
         btn.innerHTML = `<span class="icon">${item.icon}</span> ${item.label}`;
         btn.onclick = () => navigate(item.id);
         btn.dataset.id = item.id;
         navItems.appendChild(btn);
-        
         const bbtn = document.createElement('button');
         bbtn.className = 'nav-item' + (item.id === 'dashboard' ? ' active' : '');
         bbtn.innerHTML = `<span class="icon">${item.icon}</span> ${item.label.split(' ')[0]}`;
@@ -105,12 +99,10 @@ function createBottomNav() {
 }
 
 function navigate(page) {
-    // Update nav active state
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.id === page);
     });
     const content = document.getElementById('main-content');
-    
     switch(page) {
         case 'dashboard': renderDashboard(content); break;
         case 'customers': renderCustomers(content); break;
@@ -125,26 +117,29 @@ function navigate(page) {
     }
 }
 
-// ============ DASHBOARD ============
 async function renderDashboard(content) {
-    content.innerHTML = `<div class="page-header"><h2>📊 Dashboard</h2><p>Welcome back, ${currentUser?.first_name || 'User'}</p></div><div class="loading">Loading...</div>`;
-    
+    content.innerHTML = `<div class="page-header"><h2>📊 Dashboard</h2><p>Welcome back, ${currentUser?.first_name || 'User'}</p></div><div class="loading">Loading dashboard...</div>`;
+
     const [summary, financials, topCust, activity] = await Promise.all([
         api('/reports/dashboard/'),
         api('/reports/dashboard/financials/'),
         api('/reports/dashboard/top-customers/'),
         api('/reports/dashboard/recent-activity/'),
     ]);
-    
+
+    const kpiCustomers = summary?.active_customers || summary?.total_customers_qb || 0;
+    const kpiVendors = summary?.total_vendors || 0;
+    const kpiEmployees = summary?.total_employees || 0;
+    const kpiOutstanding = parseFloat(summary?.outstanding_balance || 0);
+
     content.innerHTML = `
         <div class="page-header"><h2>📊 Dashboard</h2><p>Welcome back, ${currentUser?.first_name || 'User'}</p></div>
         <div class="grid">
-            <div class="card"><div class="card-title">Customers</div><div class="card-value">${summary?.active_customers || 0}</div><div class="card-sub">Total: ${summary?.total_customers_qb || 0}</div></div>
-            <div class="card"><div class="card-title">Vendors</div><div class="card-value">${summary?.total_vendors || 0}</div><div class="card-sub">Suppliers & Contractors</div></div>
-            <div class="card"><div class="card-title">Employees</div><div class="card-value">${summary?.total_employees || 0}</div><div class="card-sub">W-2 Staff</div></div>
-            <div class="card"><div class="card-title">Outstanding</div><div class="card-value" style="color:var(--danger)">$${parseFloat(summary?.outstanding_balance || 0).toLocaleString()}</div><div class="card-sub">Unpaid Invoices</div></div>
+            <div class="card"><div class="card-title">Active Customers</div><div class="card-value">${kpiCustomers}</div><div class="card-sub">Total in QB: ${summary?.total_customers_qb || 0}</div></div>
+            <div class="card"><div class="card-title">Total Vendors</div><div class="card-value">${kpiVendors}</div><div class="card-sub">Suppliers & Contractors</div></div>
+            <div class="card"><div class="card-title">Employees</div><div class="card-value">${kpiEmployees}</div><div class="card-sub">W-2 Staff</div></div>
+            <div class="card"><div class="card-title">Outstanding</div><div class="card-value" style="color:var(--danger)">$${kpiOutstanding.toLocaleString()}</div><div class="card-sub">Unpaid Invoices</div></div>
         </div>
-        
         <div class="ai-chat">
             <h3>🤖 Ask About Your Business</h3>
             <div class="ai-input">
@@ -157,10 +152,9 @@ async function renderDashboard(content) {
                 <button onclick="quickAsk('Total income?')">Income</button>
                 <button onclick="quickAsk('Top customers?')">Top Customers</button>
                 <button onclick="quickAsk('Total expenses?')">Expenses</button>
-                <button onclick="quickAsk('Total assets?')">Assets</button>
+                <button onclick="quickAsk('How many employees?')">Employees</button>
             </div>
         </div>
-        
         <div class="grid">
             <div class="card"><div class="card-title">💰 Income vs Expenses</div>
                 <div class="bar-chart">${renderBars(financials?.profit_loss?.income?.items || [], 'income') || '<p style="color:var(--text-muted)">No data yet</p>'}</div>
@@ -169,15 +163,13 @@ async function renderDashboard(content) {
                 <div class="bar-chart">${renderBars(financials?.balance_sheet?.assets?.items || [], 'asset') || '<p style="color:var(--text-muted)">No data yet</p>'}</div>
             </div>
         </div>
-        
         <div class="card"><div class="card-title">🏆 Top Customers</div>
             <div class="table-wrap"><table><thead><tr><th>Customer</th><th>Revenue</th></tr></thead>
-            <tbody>${(topCust || []).map(c => `<tr><td>${c.customer}</td><td style="color:var(--success)">$${(c.total_revenue||0).toLocaleString()}</td></tr>`).join('')}</tbody></table></div>
+            <tbody>${(topCust || []).map(c => `<tr><td>${c.customer}</td><td style="color:var(--success)">$${(c.total_revenue||0).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="color:var(--text-muted)">No data</td></tr>'}</tbody></table></div>
         </div>
-        
         <div class="card"><div class="card-title">📋 Recent Activity</div>
             <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Name</th><th>Amount</th></tr></thead>
-            <tbody>${(activity || []).slice(0,15).map(r => `<tr><td>${r.date}</td><td>${r.type}</td><td>${r.name||r.account||''}</td><td>${r.debit>0?'<span style="color:var(--danger)">-$'+r.debit.toLocaleString()+'</span>':'<span style="color:var(--success)">+$'+r.credit.toLocaleString()+'</span>'}</td></tr>`).join('')}</tbody></table></div>
+            <tbody>${(activity || []).slice(0,15).map(r => `<tr><td>${r.date}</td><td>${r.type}</td><td>${r.name||r.account||''}</td><td>${r.debit>0?'<span style="color:var(--danger)">-$'+r.debit.toLocaleString()+'</span>':'<span style="color:var(--success)">+$'+r.credit.toLocaleString()+'</span>'}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--text-muted)">No data</td></tr>'}</tbody></table></div>
         </div>
     `;
 }
@@ -195,10 +187,9 @@ async function askAI() {
     const q = document.getElementById('ai-q').value;
     if (!q) return;
     const res = await api('/reports/dashboard/ask/?q=' + encodeURIComponent(q));
-    document.getElementById('ai-res').innerHTML = res.answer || '...';
-        
-    if (res.data && Array.isArray(res.data)) {
-        document.getElementById('ai-res').innerHTML += '<br><br>' + 
+    document.getElementById('ai-res').innerHTML = res?.answer || 'No response';
+    if (res?.data && Array.isArray(res.data)) {
+        document.getElementById('ai-res').innerHTML += '<br><br>' +
             res.data.map(d => `• ${d.customer}: <span style="color:var(--success)">$${d.revenue.toLocaleString()}</span>`).join('<br>');
     }
 }
@@ -208,86 +199,55 @@ function quickAsk(q) {
     askAI();
 }
 
-// ============ CUSTOMERS ============
 async function renderCustomers(content) {
     content.innerHTML = `<div class="page-header"><h2>👥 Customers</h2><p>Loading...</p></div>`;
     const customers = await api('/customers/');
+    if (!customers) { content.innerHTML = '<div class="page-header"><h2>👥 Customers</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
     content.innerHTML = `
-        <div class="page-header"><h2>👥 Customers</h2><p>${customers?.length || 0} customers</p></div>
+        <div class="page-header"><h2>👥 Customers</h2><p>${customers.length} customers</p></div>
         <div class="search-bar"><input type="text" placeholder="Search customers..." oninput="filterTable(this,'.customer-row')"></div>
         <div class="table-wrap"><table>
-            <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>${(customers || []).map(c => `<tr class="customer-row">${[c.name||'', c.contact_name||'', c.phone||'', c.email||'', c.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>', `<button class="btn btn-sm btn-primary" onclick="viewCustomer(${c.id})">View</button>`].map(`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+            <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Status</th></tr></thead>
+            <tbody>${customers.map(c => `<tr class="customer-row"><td>${c.name||''}</td><td>${c.contact_name||''}</td><td>${c.phone||''}</td><td>${c.email||''}</td><td>${c.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td></tr>`).join('')}</tbody>
         </table></div>
     `;
 }
 
-async function viewCustomer(id) {
-    const c = await api('/customers/' + id + '/');
-    alert(`Customer: ${c.name}\nContact: ${c.contact_name || 'N/A'}\nPhone: ${c.phone || 'N/A'}\nEmail: ${c.email || 'N/A'}\nAddress: ${c.billing_address || c.address || 'N/A'}\nOutstanding: $${c.outstanding_balance || 0}`);
-}
-
-// ============ VENDORS ============
 async function renderVendors(content) {
     content.innerHTML = `<div class="page-header"><h2>🏢 Vendors</h2><p>Loading...</p></div>`;
-    let vendors = await api('/vendors/');
-    
-    // If no vendors in core_vendor, show message
-    if (!vendors || vendors.length === 0) {
-        content.innerHTML = `
-            <div class="page-header"><h2>🏢 Vendors</h2><p>218 vendors imported from QuickBooks</p></div>
-            <div class="card"><div class="card-title">Vendor List</div>
-                <div class="table-wrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th></tr></thead><tbody id="vendor-tbody"><tr><td colspan="4">Loading vendors...</td></tr></tbody></table></div>
-            </div>`;
-        
-        // Try fetching from the vendor endpoint
-        try {
-            const res = await fetch(API + '/vendors/', { headers: { 'Authorization': 'Bearer ' + token } });
-            if (res.ok) {
-                vendors = await res.json();
-                document.getElementById('vendor-tbody').innerHTML = (vendors || []).map(v => 
-                    `<tr><td>${v.name||''}</td><td>${v.contact_name||''}</td><td>${v.phone||''}</td><td>${v.email||''}</td></tr>`).join('');
-            }
-        } catch(e) {}
-    } else {
-        content.innerHTML = `
-            <div class="page-header"><h2>🏢 Vendors</h2><p>${vendors.length} vendors</p></div>
-            <div class="search-bar"><input type="text" placeholder="Search vendors..."></div>
-            <div class="table-wrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th></tr></thead>
-            <tbody>${vendors.map(v => `<tr><td>${v.name||''}</td><td>${v.contact_name||''}</td><td>${v.phone||''}</td><td>${v.email||''}</td></tr>`).join('')}</tbody></table></div>`;
-    }
-}
-
-// ============ INVOICES ============
-async function renderInvoices(content) {
-    content.innerHTML = `<div class="page-header"><h2>📄 Invoices</h2><p>Loading...</p></div>`;
-    const invoices = await api('/invoices/');
+    const vendors = await api('/vendors/');
+    if (!vendors) { content.innerHTML = '<div class="page-header"><h2>🏢 Vendors</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
     content.innerHTML = `
-        <div class="page-header"><h2>📄 Invoices</h2><p>${invoices?.length || 0} invoices</p></div>
-        ${currentUser?.role !== 'employee' ? '<button class="btn btn-primary" onclick="alert(\'Add invoice feature coming soon\')" style="margin-bottom:16px">+ New Invoice</button>' : ''}
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Balance</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody>${(invoices || []).slice(0,50).map(inv => `<tr><td>${inv.invoice_number||inv.id}</td><td>${inv.customer_name||inv.customer||''}</td><td>$${(inv.total||0).toLocaleString()}</td><td>$${(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='paid'?'badge-success':inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||'draft'}</span></td><td>${(inv.date_created||'').toString().slice(0,10)}</td></tr>`).join('')}</tbody></table></div>
+        <div class="page-header"><h2>🏢 Vendors</h2><p>${vendors.length} vendors</p></div>
+        <div class="search-bar"><input type="text" placeholder="Search vendors..." oninput="filterTable(this,'.vendor-row')"></div>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th></tr></thead>
+            <tbody>${vendors.map(v => `<tr class="vendor-row"><td>${v.name||''}</td><td>${v.contact_name||''}</td><td>${v.phone||''}</td><td>${v.email||''}</td></tr>`).join('')}</tbody>
+        </table></div>
     `;
 }
 
-// ============ WORK ORDERS ============
+async function renderInvoices(content) {
+    content.innerHTML = `<div class="page-header"><h2>📄 Invoices</h2><p>Loading...</p></div>`;
+    const invoices = await api('/invoices/');
+    if (!invoices) { content.innerHTML = '<div class="page-header"><h2>📄 Invoices</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
+    content.innerHTML = `
+        <div class="page-header"><h2>📄 Invoices</h2><p>${invoices.length} invoices</p></div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Balance</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${invoices.slice(0,50).map(inv => `<tr><td>${inv.invoice_number||inv.id}</td><td>${inv.customer_name||inv.customer||''}</td><td>$${(inv.total||0).toLocaleString()}</td><td>$${(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='paid'?'badge-success':inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||'draft'}</span></td><td>${(inv.date_created||'').toString().slice(0,10)}</td></tr>`).join('')}</tbody></table></div>
+    `;
+}
+
 async function renderWorkOrders(content) {
     content.innerHTML = `
         <div class="page-header"><h2>🔧 Work Orders</h2><p>View and manage work orders</p></div>
         <div class="card"><div class="card-title">QuickBooks Work Orders</div>
             <p style="color:var(--text-muted);margin-bottom:12px">Your OneDrive contains hundreds of scanned work orders and invoices.</p>
-            <p style="color:var(--text-muted)">Total documents available: <strong style="color:var(--text)">9,125</strong> files including:</p>
-            <ul style="margin:12px 0 12px 20px;color:var(--text-muted)">
-                <li>Work order scans (PDF, JPG)</li>
-                <li>Invoices and receipts</li>
-                <li>Permits and inspections</li>
-                <li>Bank deposit records</li>
-            </ul>
-            <button class="btn btn-primary" onclick="navigate('documents')">View Documents</button>
+            <p style="color:var(--text-muted)">Total documents available: <strong style="color:var(--text)">9,125</strong> files including work order scans, invoices, permits, and bank deposit records.</p>
+            <button class="btn btn-primary" onclick="navigate('documents')" style="margin-top:12px">View Documents</button>
         </div>`;
 }
 
-// ============ DOCUMENTS ============
 async function renderDocuments(content) {
     content.innerHTML = `
         <div class="page-header"><h2>📁 Documents</h2><p>Business files and records</p></div>
@@ -298,16 +258,13 @@ async function renderDocuments(content) {
             <div class="card"><div class="card-title">📧 Emails</div><div class="card-value">16</div><div class="card-sub">Business correspondence</div></div>
         </div>
         <div class="card"><div class="card-title">📦 File Storage</div>
-            <p style="color:var(--text-muted)">Total: <strong>4.5 GB</strong> of business documents secured and backed up.</p>
-            <p style="color:var(--text-muted);margin-top:8px">Files are stored on USB drive, local server, and ready for cloud upload.</p>
+            <p style="color:var(--text-muted)">Total: <strong>4.5 GB</strong> of business documents secured and backed up on USB drive and local server.</p>
         </div>`;
 }
 
-// ============ TIMECLOCK ============
 async function renderTimeclock(content) {
-    const me = currentUser;
     content.innerHTML = `
-        <div class="page-header"><h2>⏰ Time Clock</h2><p>${me?.first_name || 'Employee'}</p></div>
+        <div class="page-header"><h2>⏰ Time Clock</h2><p>${currentUser?.first_name || 'Employee'}</p></div>
         <div class="card" style="text-align:center;padding:40px">
             <div style="font-size:3rem;margin-bottom:16px" id="clock-display">--:--</div>
             <p style="color:var(--text-muted);margin-bottom:20px" id="clock-date">Loading...</p>
@@ -318,10 +275,9 @@ async function renderTimeclock(content) {
         </div>
         <div class="card"><div class="card-title">Recent Time Entries</div>
             <div class="table-wrap"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th></tr></thead>
-            <tbody id="time-entries"><tr><td colspan="4" style="color:var(--text-muted)">No entries yet</td></tr></tbody></table></div>
+            <tbody id="time-entries"><tr><td colspan="4" style="color:var(--text-muted)">Loading...</td></tr></tbody></table></div>
         </div>`;
-    
-    // Update clock
+
     function updateClock() {
         const now = new Date();
         document.getElementById('clock-display').textContent = now.toLocaleTimeString();
@@ -329,12 +285,13 @@ async function renderTimeclock(content) {
     }
     updateClock();
     setInterval(updateClock, 1000);
-    
-    // Load time entries
+
     const entries = await api('/time/');
     if (entries && entries.length > 0) {
-        document.getElementById('time-entries').innerHTML = entries.slice(0, 10).map(e => 
+        document.getElementById('time-entries').innerHTML = entries.slice(0, 10).map(e =>
             `<tr><td>${e.date}</td><td>${(e.time_in||'').toString().slice(11,16)}</td><td>${e.time_out?(e.time_out).toString().slice(11,16):'<span style="color:var(--warning)">Still in</span>'}</td><td>${e.hours_worked||0}h</td></tr>`).join('');
+    } else {
+        document.getElementById('time-entries').innerHTML = '<tr><td colspan="4" style="color:var(--text-muted)">No entries yet</td></tr>';
     }
 }
 
@@ -344,7 +301,7 @@ function clockIn() {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ datetime: new Date().toISOString() })
     }).then(r => r.json()).then(d => {
-        alert('Clocked in successfully!');
+        alert('Clocked in!');
         renderTimeclock(document.getElementById('main-content'));
     }).catch(e => alert('Error: ' + e.message));
 }
@@ -360,18 +317,16 @@ function clockOut() {
     }).catch(e => alert('Error: ' + e.message));
 }
 
-// ============ PAYROLL ============
 async function renderPayroll(content) {
     content.innerHTML = `<div class="page-header"><h2>💰 Payroll</h2><p>Loading...</p></div>`;
     const payroll = await api('/reports/payroll/');
     content.innerHTML = `
         <div class="page-header"><h2>💰 Payroll</h2><p>Employee payroll summary</p></div>
         <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Total Hours</th><th>Total Earnings</th></tr></thead>
-        <tbody>${(payroll || []).map(p => `<tr><td>${p.employee||p.username||''}</td><td>${(p.total_hours||0).toFixed(1)}h</td><td style="color:var(--success)">$${(p.total_earnings||0).toLocaleString()}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${(payroll || []).map(p => `<tr><td>${p.employee||p.username||''}</td><td>${(p.total_hours||0).toFixed(1)}h</td><td style="color:var(--success)">$${(p.total_earnings||0).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--text-muted)">No payroll data yet</td></tr>'}</tbody></table></div>
     `;
 }
 
-// ============ REPORTS ============
 async function renderReports(content) {
     content.innerHTML = `<div class="page-header"><h2>📈 Reports</h2><p>Loading...</p></div>`;
     const [summary, outstanding, revenue] = await Promise.all([
@@ -379,7 +334,7 @@ async function renderReports(content) {
         api('/reports/outstanding/'),
         api('/reports/revenue/'),
     ]);
-    
+
     content.innerHTML = `
         <div class="page-header"><h2>📈 Reports</h2><p>Business intelligence & analytics</p></div>
         <div class="grid">
@@ -397,12 +352,11 @@ async function renderReports(content) {
         </div>
         <div class="card"><div class="card-title">⚠️ Outstanding Invoices</div>
             <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Balance</th><th>Status</th></tr></thead>
-            <tbody>${(outstanding||[]).slice(0,20).map(inv => `<tr><td>${inv.invoice_number||''}</td><td>${inv.customer||''}</td><td style="color:var(--danger)">$${parseFloat(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||''}</span></td></tr>`).join('')}</tbody></table></div>
+            <tbody>${(outstanding||[]).slice(0,20).map(inv => `<tr><td>${inv.invoice_number||''}</td><td>${inv.customer||''}</td><td style="color:var(--danger)">$${parseFloat(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||''}</span></td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--text-muted)">No outstanding invoices</td></tr>'}</tbody></table></div>
         </div>
     `;
 }
 
-// ============ UTILITIES ============
 function filterTable(input, rowSelector) {
     const filter = input.value.toLowerCase();
     document.querySelectorAll(rowSelector).forEach(row => {
@@ -410,7 +364,6 @@ function filterTable(input, rowSelector) {
     });
 }
 
-// ============ INIT ============
 if (token) {
     api('/auth/me/').then(me => {
         if (me && me.username) {
