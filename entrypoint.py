@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entrypoint: collectstatic, migrate, seed superuser, start gunicorn."""
+"""Entrypoint: collectstatic, migrate, seed superusers, start gunicorn."""
 import os, subprocess, sys
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -19,35 +19,32 @@ result = subprocess.run(
 )
 print(f"[entrypoint] Migrate exit code: {result.returncode}", flush=True)
 
-# Create superusers if not exists (using raw SQL to avoid model/DB mismatch)
+# Create superusers (raw SQL to handle schema differences)
 from django.db import connection
 from django.contrib.auth.hashers import make_password
 cursor = connection.cursor()
 
-# Check NOT NULL columns for core_user
 cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='core_user' AND is_nullable='NO'")
 not_null = {row[0] for row in cursor.fetchall()}
-print(f"[entrypoint] User NOT NULL columns: {not_null}", flush=True)
 
 def create_user(username, first_name, last_name, email, password):
     cursor.execute("SELECT id FROM core_user WHERE username = %s LIMIT 1", [username])
     if cursor.fetchone():
+        print(f"[entrypoint] {username} already exists", flush=True)
         return
-    # Build INSERT dynamically based on NOT NULL columns
-    base_cols = ['password', 'username', 'first_name', 'last_name', 'email', 'role', 'is_superuser', 'is_staff', 'is_active', 'date_joined']
-    base_vals = [make_password(password), username, first_name, last_name, email, 'super_admin', True, True, True, 'NOW()']
-    
+    cols = ['password', 'username', 'first_name', 'last_name', 'email', 'role', 'is_superuser', 'is_staff', 'is_active', 'date_joined']
+    vals = [make_password(password), username, first_name, last_name, email, 'super_admin', True, True, True]
+    placeholder_list = ['%s'] * len(vals)
     if 'phone' in not_null:
-        base_cols.append('phone')
-        base_vals.append('')
+        cols.insert(-1, 'phone')
+        vals.insert(-1, '')
     if 'is_active_employee' in not_null:
-        base_cols.append('is_active_employee')
-        base_vals.append(True)
-    
-    cols = ', '.join(base_cols)
-    placeholders = ', '.join(['%s'] * (len(base_cols) - 1)) + ', NOW()'
-    sql = f"INSERT INTO core_user ({cols}) VALUES ({placeholders})"
-    cursor.execute(sql, base_vals)
+        cols.insert(-1, 'is_active_employee')
+        vals.insert(-1, True)
+    placeholder_list = ['%s'] * (len(cols) - 1)  # all EXCEPT date_joined
+    placeholder_list.append('NOW()')  # date_joined = NOW()
+    sql = f"INSERT INTO core_user ({','.join(cols)}) VALUES ({','.join(placeholder_list)})"
+    cursor.execute(sql, vals)
     print(f"[entrypoint] Superuser created: {username}", flush=True)
 
 create_user('admin', 'Admin', 'User', 'admin@stateelectric.co', 'ChangeMe123!')
