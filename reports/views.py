@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 from django.db.models import Sum, Count, Avg
+from django.db import connection
 from django.utils import timezone
 from datetime import timedelta
 from invoicing.models import Invoice, Payment
@@ -31,7 +32,6 @@ class RevenueReportView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        # Monthly revenue for last 12 months
         today = timezone.now()
         result = []
         for i in range(12):
@@ -49,15 +49,23 @@ class OutstandingReportView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        invoices = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).select_related('customer')
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT inv.invoice_number, c.name, inv.total, inv.balance_due, inv.status, inv.date_created
+                FROM invoicing_invoice inv
+                LEFT JOIN core_customer c ON inv.customer_id = c.id
+                WHERE inv.status IN ('sent', 'partial', 'overdue')
+                ORDER BY inv.date_created DESC
+            """)
+            rows = cursor.fetchall()
         data = [{
-            'invoice_number': inv.invoice_number,
-            'customer': inv.customer.name,
-            'total': str(inv.total),
-            'balance_due': str(inv.balance_due),
-            'status': inv.status,
-            'date': str(inv.date_created),
-        } for inv in invoices]
+            'invoice_number': row[0] or '',
+            'customer': row[1] or '',
+            'total': str(row[2] or 0),
+            'balance_due': str(row[3] or 0),
+            'status': row[4] or '',
+            'date': str(row[5])[:10] if row[5] else '',
+        } for row in rows]
         return Response(data)
 
 
@@ -66,12 +74,10 @@ class PayrollReportView(APIView):
 
     def get(self, request):
         if request.user.role == 'employee':
-            # Only show own data
             entries = TimeEntry.objects.filter(employee=request.user, time_out__isnull=False)
         else:
             entries = TimeEntry.objects.filter(time_out__isnull=False)
 
-        # Group by employee
         payroll = {}
         for entry in entries:
             uid = entry.employee_id
@@ -82,8 +88,8 @@ class PayrollReportView(APIView):
                     'total_hours': 0,
                     'total_earnings': 0,
                 }
-            payroll[uid]['total_hours'] += float(entry.hours_worked)
-            payroll[uid]['total_earnings'] += float(entry.earnings)
+            payroll[uid]['total_hours'] += float(getattr(entry, 'hours_worked', 0) or 0)
+            payroll[uid]['total_earnings'] += float(getattr(entry, 'earnings', 0) or 0)
 
         result = sorted(payroll.values(), key=lambda x: x['employee'])
         for r in result:

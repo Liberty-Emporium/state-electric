@@ -5,6 +5,7 @@ All data comes from the live database.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
+from django.db import connection
 from django.db.models import Sum
 from django.utils import timezone
 from invoicing.models import Invoice, Payment
@@ -109,15 +110,23 @@ class RecentActivityView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        invoices = Invoice.objects.select_related('customer').order_by('-created_at')[:20]
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT inv.date_created, c.name, inv.invoice_number, inv.total
+                FROM invoicing_invoice inv
+                LEFT JOIN core_customer c ON inv.customer_id = c.id
+                ORDER BY inv.created_at DESC NULLS LAST
+                LIMIT 20
+            """)
+            rows = cursor.fetchall()
         return Response([{
-            'date': str(inv.date_created)[:10],
+            'date': str(row[0])[:10] if row[0] else '',
             'type': 'Invoice',
-            'name': inv.customer.name if inv.customer else '',
-            'account': inv.invoice_number,
+            'name': row[1] or '',
+            'account': row[2] or '',
             'debit': 0,
-            'credit': float(inv.total or 0),
-        } for inv in invoices])
+            'credit': float(row[3] or 0),
+        } for row in rows])
 
 
 class AIQueryView(APIView):
