@@ -56,9 +56,9 @@ class Command(BaseCommand):
                         skipped += 1
                         continue
                     cursor.execute(
-                        """INSERT INTO core_customer (name, phone, email, notes, is_active, created_at, updated_at)
-                           VALUES (%s, %s, %s, %s, true, NOW(), NOW())""",
-                        [name, c.get('phone', ''), c.get('email', ''),
+                        """INSERT INTO core_customer (name, company, division, address, phone, email, notes, is_active, created_at, updated_at)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, true, NOW(), NOW())""",
+                        [name, name, None, None, c.get('phone', ''), c.get('email', ''),
                          f"Contact: {c.get('full_name', '')}\nBilling: {c.get('billing_address', '')}\nShipping: {c.get('shipping_address', '')}"]
                     )
                     created += 1
