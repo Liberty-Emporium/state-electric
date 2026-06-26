@@ -117,11 +117,13 @@ class TopCustomersView(APIView):
                 for t in top
             ])
 
-        # Fallback: show all customers
-        customers = Customer.objects.filter(is_active=True).order_by('name')[:20]
+        # Fallback: show all customers using raw SQL
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT name FROM core_customer ORDER BY name LIMIT 20")
+            rows = cursor.fetchall()
         return Response([
-            {'customer': c.name, 'total_revenue': 0}
-            for c in customers
+            {'customer': row[0], 'total_revenue': 0}
+            for row in rows
         ])
 
 
