@@ -19,64 +19,30 @@ result = subprocess.run(
 )
 print(f"[entrypoint] Migrate exit code: {result.returncode}", flush=True)
 
-# Fix missing columns (idempotent - safe to run every time)
-from django.db import connection
-cursor = connection.cursor()
-
-def add_column(table, col_name, col_type, default=None):
-    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{col_name}'")
-    if not cursor.fetchone():
-        sql = f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
-        if default is not None:
-            sql += f" DEFAULT {default}"
-            if 'NOT NULL' not in col_type:
-                pass
-            else:
-                sql += " NOT NULL"
-        cursor.execute(sql)
-        print(f"[entrypoint] Added {table}.{col_name}", flush=True)
-    else:
-        print(f"[entrypoint] {table}.{col_name} exists", flush=True)
-
-# Fix core_user
-add_column('core_user', 'hourly_rate', 'DECIMAL(7,2)', '25.00')
-add_column('core_user', 'division_id', 'INTEGER', None)
-
-# Fix core_customer
-add_column('core_customer', 'division', 'VARCHAR(20)', "'GEN' NOT NULL")
-add_column('core_customer', 'address', 'TEXT', "'' NOT NULL")
-add_column('core_customer', 'updated_at', 'TIMESTAMP', 'NOW() NOT NULL')
-
 # Create superusers (raw SQL to handle schema differences)
+from django.db import connection
 from django.contrib.auth.hashers import make_password
+cursor = connection.cursor()
 
 cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='core_user' AND is_nullable='NO'")
 not_null = {row[0] for row in cursor.fetchall()}
-print(f"[entrypoint] NOT NULL: {not_null}", flush=True)
 
 def create_user(username, first_name, last_name, email, password):
     cursor.execute("SELECT id FROM core_user WHERE username = %s LIMIT 1", [username])
     if cursor.fetchone():
         print(f"[entrypoint] {username} exists", flush=True)
         return
-    
-    # Build columns and values lists (date_joined always last with NOW())
     cols = ['password', 'username', 'first_name', 'last_name', 'email', 'role', 'is_superuser', 'is_staff', 'is_active']
     vals = [make_password(password), username, first_name, last_name, email, 'super_admin', True, True, True]
-    
     if 'phone' in not_null:
         cols.append('phone')
         vals.append('')
     if 'is_active_employee' in not_null:
         cols.append('is_active_employee')
         vals.append(True)
-    
     cols.append('date_joined')
-    # placeholders: %s for each val, NOW() for date_joined
     ph = ', '.join(['%s'] * len(vals)) + ', NOW()'
     sql = f"INSERT INTO core_user ({','.join(cols)}) VALUES ({ph})"
-    print(f"[entrypoint] SQL: {sql}", flush=True)
-    print(f"[entrypoint] VALS: {vals}", flush=True)
     cursor.execute(sql, vals)
     print(f"[entrypoint] Created: {username}", flush=True)
 
