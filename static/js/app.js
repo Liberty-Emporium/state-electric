@@ -127,7 +127,9 @@ async function renderDashboard(content) {
         api('/reports/dashboard/recent-activity/'),
     ]);
 
-    const kpiCustomers = summary?.active_customers || summary?.total_customers_qb || 0;
+    if (!summary) { content.innerHTML = '<div class="page-header"><h2>📊 Dashboard</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
+
+    const kpiCustomers = summary?.active_customers || 0;
     const kpiVendors = summary?.total_vendors || 0;
     const kpiEmployees = summary?.total_employees || 0;
     const kpiOutstanding = parseFloat(summary?.outstanding_balance || 0);
