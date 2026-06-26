@@ -35,16 +35,27 @@ class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username', '')
         password = request.data.get('password', '')
-        user = authenticate(username=username, password=password)
-        if user is None:
-            return Response({'error': 'Invalid credentials'}, status=401)
-
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': UserSerializer(user).data,
-        })
+        try:
+            user = authenticate(username=username, password=password)
+            if user is None:
+                return Response({'error': 'Invalid credentials'}, status=401)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'role': user.role,
+                    'phone': user.phone or '',
+                    'is_active': user.is_active,
+                },
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 
 class MeView(APIView):
