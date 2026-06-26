@@ -8,15 +8,11 @@ import os
 def health_check(request):
     return JsonResponse({'status': 'ok', 'service': 'State Electric API'})
 
+from django.shortcuts import render
+
 def serve_app(request):
     """Serve the main SPA."""
-    index_path = os.path.join(settings.BASE_DIR, 'static', 'index.html')
-    if not os.path.exists(index_path):
-        index_path = os.path.join(settings.BASE_DIR, 'staticfiles', 'index.html')
-    if not os.path.exists(index_path):
-        return HttpResponse('<h1>State Electric & Lighting</h1><p>App is starting...</p>', status=200)
-    with open(index_path, 'r') as f:
-        return HttpResponse(f.read())
+    return render(request, 'index.html')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
