@@ -269,7 +269,12 @@ async function renderDocuments(content) {
         </div>`;
 }
 
+let clockInterval = null;
+
 async function renderTimeclock(content) {
+    // Clear any previous clock interval to prevent leaks
+    if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+
     content.innerHTML = `
         <div class="page-header"><h2>⏰ Time Clock</h2><p>${currentUser?.first_name || 'Employee'}</p></div>
         <div class="card" style="text-align:center;padding:40px">
@@ -286,12 +291,15 @@ async function renderTimeclock(content) {
         </div>`;
 
     function updateClock() {
+        const display = document.getElementById('clock-display');
+        const dateEl = document.getElementById('clock-date');
+        if (!display || !dateEl) { clearInterval(clockInterval); clockInterval = null; return; }
         const now = new Date();
-        document.getElementById('clock-display').textContent = now.toLocaleTimeString();
-        document.getElementById('clock-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        display.textContent = now.toLocaleTimeString();
+        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
     updateClock();
-    setInterval(updateClock, 1000);
+    clockInterval = setInterval(updateClock, 1000);
 
     const entries = await api('/time/');
     if (entries && entries.length > 0) {
