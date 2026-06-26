@@ -9,11 +9,31 @@ django.setup()
 from django.db import connection
 import json
 
-# Load parsed QB data
-data_file = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-    'state-electric-data', 'parsed_qb_data.json'
-)
+# Load parsed QB data - try multiple paths
+possible_paths = [
+    os.path.join(os.path.dirname(__file__), 'state-electric-data', 'parsed_qb_data.json'),
+    '/home/django/state-electric-data/parsed_qb_data.json',
+    '/state-electric-data/parsed_qb_data.json',
+]
+data_file = None
+for p in possible_paths:
+    if os.path.exists(p):
+        data_file = p
+        break
+if not data_file:
+    # List what's available
+    print("Looking for data file...")
+    for p in possible_paths:
+        print(f"  {p}: {'EXISTS' if os.path.exists(p) else 'NOT FOUND'}")
+    # Try to find it
+    for root, dirs, files in os.walk('/home/django'):
+        for f in files:
+            if f == 'parsed_qb_data.json':
+                data_file = os.path.join(root, f)
+                print(f"  Found at: {data_file}")
+                break
+        if data_file:
+            break
 with open(data_file) as f:
     data = json.load(f)
 
