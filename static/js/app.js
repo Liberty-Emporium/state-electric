@@ -302,23 +302,25 @@ async function renderTimeclock(content) {
 }
 
 function clockIn() {
-    fetch(API + '/time/', {
+    fetch(API + '/time/clock-in/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ datetime: new Date().toISOString() })
+        body: JSON.stringify({ notes: '' })
     }).then(r => r.json()).then(d => {
-        alert('Clocked in!');
+        if (d.error) alert(d.error);
+        else alert('Clocked in!');
         renderTimeclock(document.getElementById('main-content'));
     }).catch(e => alert('Error: ' + e.message));
 }
 
 function clockOut() {
-    fetch(API + '/time/', {
-        method: 'PUT',
+    fetch(API + '/time/clock-out/', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ datetime: new Date().toISOString() })
+        body: JSON.stringify({ notes: '' })
     }).then(r => r.json()).then(d => {
-        alert('Clocked out!');
+        if (d.error) alert(d.error);
+        else alert('Clocked out!');
         renderTimeclock(document.getElementById('main-content'));
     }).catch(e => alert('Error: ' + e.message));
 }
