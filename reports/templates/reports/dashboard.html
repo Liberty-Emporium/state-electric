@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Electric & Lighting - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 20px; border-bottom: 2px solid #3b82f6; }
+        .header h1 { font-size: 1.5rem; color: #60a5fa; }
+        .header p { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+        .card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 8px; }
+        .card .value { font-size: 2rem; font-weight: 700; color: #f1f5f9; }
+        .card .sub { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+        .positive { color: #4ade80; }
+        .negative { color: #f87171; }
+        .chart-container { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; }
+        .chart-container h3 { font-size: 1rem; color: #e2e8f0; margin-bottom: 16px; }
+        .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+        .bar-row { display: flex; align-items: center; gap: 10px; }
+        .bar-label { width: 150px; font-size: 0.8rem; color: #94a3b8; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bar-track { flex: 1; background: #334155; border-radius: 4px; height: 24px; position: relative; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .bar-fill.income { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .bar-fill.expense { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .bar-fill.asset { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .bar-value { width: 100px; font-size: 0.8rem; color: #e2e8f0; font-weight: 600; }
+        .ai-box { background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); border-radius: 12px; padding: 20px; border: 1px solid #3b82f6; margin-bottom: 20px; }
+        .ai-box h3 { color: #60a5fa; margin-bottom: 12px; }
+        .ai-input { display: flex; gap: 8px; margin-bottom: 12px; }
+        .ai-input input { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 0.9rem; }
+        .ai-input button { padding: 10px 20px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; }
+        .ai-input button:hover { background: #2563eb; }
+        .ai-response { background: #0f172a; border-radius: 8px; padding: 14px; font-size: 0.9rem; color: #e2e8f0; min-height: 40px; }
+        .ai-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ai-suggestions button { padding: 6px 12px; border-radius: 16px; border: 1px solid #475569; background: transparent; color: #94a3b8; font-size: 0.75rem; cursor: pointer; }
+        .ai-suggestions button:hover { border-color: #3b82f6; color: #60a5fa; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 10px; color: #94a3b8; border-bottom: 1px solid #334155; font-weight: 600; }
+        td { padding: 10px; border-bottom: 1px solid #1e293b; color: #e2e8f0; }
+        tr:hover td { background: #334155; }
+        .loading { text-align: center; padding: 40px; color: #64748b; }
+        .refresh-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: #3b82f6; color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+        @media (max-width: 640px) {
+            .grid { grid-template-columns: 1fr; }
+            .bar-label { width: 100px; font-size: 0.7rem; }
+            .bar-value { width: 70px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ State Electric & Lighting Co., Inc.</h1>
+        <p>Business Dashboard • <span id="last-updated">Loading...</span></p>
+    </div>
+    
+    <div class="container">
+        <!-- KPI Cards -->
+        <div class="grid" id="kpi-cards">
+            <div class="loading">Loading dashboard...</div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="ai-box">
+            <h3>🤖 Ask About Your Business</h3>
+            <div class="ai-input">
+                <input type="text" id="ai-question" placeholder="e.g., How many customers do I have?">
+                <button onclick="askAI()">Ask</button>
+            </div>
+            <div class="ai-response" id="ai-response">Try asking a question about your business data...</div>
+            <div class="ai-suggestions">
+                <button onclick="quickAsk('How many customers?')">Customer count</button>
+                <button onclick="quickAsk('Total income?')">Total income</button>
+                <button onclick="quickAsk('Top customers?')">Top customers</button>
+                <button onclick="quickAsk('Total expenses?')">Expenses</button>
+                <button onclick="quickAsk('How many employees?')">Employees</button>
+            </div>
+        </div>
+
+        <!-- Financial Graphs -->
+        <div class="grid">
+            <div class="chart-container">
+                <h3>📊 Income vs Expenses</h3>
+                <div class="bar-chart" id="pl-chart"></div>
+            </div>
+            <div class="chart-container">
+                <h3>💰 Balance Sheet</h3>
+                <div class="bar-chart" id="bs-chart"></div>
+            </div>
+        </div>
+
+        <!-- Top Customers -->
+        <div class="chart-container">
+            <h3>🏆 Top Customers by Revenue</h3>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Customer</th><th>Revenue</th></tr></thead>
+                    <tbody id="top-customers"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="chart-container">
+            <h3>📋 Recent Activity</h3>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Name</th><th>Amount</th></tr></thead>
+                    <tbody id="recent-activity"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadDashboard()" title="Refresh">↻</button>
+
+    <script>
+        const API_BASE = '/api/reports';
+        
+        async function api(endpoint) {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+            });
+            return res.json();
+        }
+
+        async function loadDashboard() {
+            document.getElementById('last-updated').textContent = new Date().toLocaleString();
+            
+            // Load KPIs
+            try {
+                const summary = await api('/dashboard/');
+                document.getElementById('kpi-cards').innerHTML = `
+                    <div class="card"><h3>Active Customers</h3><div class="value">${summary.active_customers || 0}</div><div class="sub">From QuickBooks: ${summary.total_customers_qb || 0}</div></div>
+                    <div class="card"><h3>Total Vendors</h3><div class="value">${summary.total_vendors || 0}</div><div class="sub">Suppliers & contractors</div></div>
+                    <div class="card"><h3>Employees</h3><div class="value">${summary.total_employees || 0}</div><div class="sub">W-2 staff members</div></div>
+                    <div class="card"><h3>Outstanding Balance</h3><div class="value negative">$${parseFloat(summary.outstanding_balance || 0).toLocaleString()}</div><div class="sub">Unpaid invoices</div></div>
+                `;
+            } catch(e) { console.error('Summary error:', e); }
+
+            // Load Financials
+            try {
+                const fin = await api('/dashboard/financials/');
+                renderBarChart('pl-chart', fin.profit_loss.income.items, 'income');
+                renderBarChart('pl-chart', fin.profit_loss.expenses.items, 'expense', true);
+                renderBarChart('bs-chart', fin.balance_sheet.assets.items, 'asset');
+                renderBarChart('bs-chart', fin.balance_sheet.liabilities.items, 'expense', true);
+            } catch(e) { console.error('Financials error:', e); }
+
+            // Load Top Customers
+            try {
+                const top = await api('/dashboard/top-customers/');
+                document.getElementById('top-customers').innerHTML = top.map(c => 
+                    `<tr><td>${c.customer}</td><td class="positive">$${c.total_revenue.toLocaleString()}</td></tr>`
+                ).join('');
+            } catch(e) { console.error('Top customers error:', e); }
+
+            // Load Recent Activity
+            try {
+                const recent = await api('/dashboard/recent-activity/');
+                document.getElementById('recent-activity').innerHTML = recent.slice(0, 15).map(r => 
+                    `<tr><td>${r.date}</td><td>${r.type}</td><td>${r.name || r.account}</td><td>${r.debit > 0 ? '<span class="negative">-$' + r.debit.toLocaleString() + '</span>' : '<span class="positive">+$' + r.credit.toLocaleString() + '</span>'}</td></tr>`
+                ).join('');
+            } catch(e) { console.error('Activity error:', e); }
+        }
+
+        function renderBarChart(containerId, items, type, append) {
+            const container = document.getElementById(containerId);
+            if (!append) container.innerHTML = '';
+            if (!items || items.length === 0) return;
+            const max = Math.max(...items.map(i => Math.abs(i.amount)));
+            items.forEach(item => {
+                const pct = max > 0 ? (Math.abs(item.amount) / max * 100) : 0;
+                container.innerHTML += `
+                    <div class="bar-row">
+                        <div class="bar-label" title="${item.label}">${item.label}</div>
+                        <div class="bar-track"><div class="bar-fill ${type}" style="width:${pct}%"></div></div>
+                        <div class="bar-value">$${item.amount.toLocaleString()}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function askAI() {
+            const q = document.getElementById('ai-question').value;
+            if (!q) return;
+            const res = await api('/dashboard/ask/?q=' + encodeURIComponent(q));
+            document.getElementById('ai-response').innerHTML = `<strong>Answer:</strong> ${res.answer}`;
+            if (res.data && Array.isArray(res.data)) {
+                document.getElementById('ai-response').innerHTML += '<br><br>' + 
+                    res.data.map(d => `• ${d.customer}: <span class="positive">$${d.revenue.toLocaleString()}</span>`).join('<br>');
+            }
+        }
+
+        function quickAsk(q) {
+            document.getElementById('ai-question').value = q;
+            askAI();
+        }
+
+        // Enter key to submit
+        document.getElementById('ai-question').addEventListener('keypress', e => { if (e.key === 'Enter') askAI(); });
+
+        // Load on page load
+        loadDashboard();
+    </script>
+</body>
+</html>
