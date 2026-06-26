@@ -23,7 +23,7 @@ print(f"[entrypoint] Migrate exit code: {result.returncode}", flush=True)
 if result.returncode != 0:
     print(f"[entrypoint] Migrate stderr: {result.stderr[:500]}", flush=True)
 
-# Create superusers (raw SQL to handle schema differences)
+# Fix missing columns and create superusers
 try:
     import django
     django.setup()
@@ -31,43 +31,71 @@ try:
     from django.contrib.auth.hashers import make_password
     cursor = connection.cursor()
 
-    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='core_user' AND is_nullable='NO'")
-    not_null = {row[0] for row in cursor.fetchall()}
-    print(f"[entrypoint] NOT NULL columns: {not_null}", flush=True)
+    # Add ALL missing columns to core_user (idempotent)
+    missing_cols = [
+        ('created_at', 'TIMESTAMP DEFAULT NOW()'),
+        ('updated_at', 'TIMESTAMP DEFAULT NOW()'),
+        ('last_login', 'TIMESTAMP DEFAULT NULL'),
+        ('date_joined', 'TIMESTAMP DEFAULT NOW()'),
+        ('is_superuser', 'BOOLEAN DEFAULT false'),
+        ('is_staff', 'BOOLEAN DEFAULT false'),
+        ('is_active', 'BOOLEAN DEFAULT true'),
+        ('first_name', 'VARCHAR(150) DEFAULT \'\''),
+        ('last_name', 'VARCHAR(150) DEFAULT \'\''),
+        ('email', 'VARCHAR(254) DEFAULT \'\''),
+        ('password', 'VARCHAR(128) DEFAULT \'\''),
+        ('username', 'VARCHAR(150) DEFAULT \'\''),
+        ('phone', 'VARCHAR(30) DEFAULT \'\''),
+        ('role', 'VARCHAR(20) DEFAULT \'employee\''),
+        ('is_active_employee', 'BOOLEAN DEFAULT true'),
+        ('hourly_rate', 'DECIMAL(7,2) DEFAULT 25.00'),
+    ]
+    for col_name, col_def in missing_cols:
+        cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='core_user' AND column_name='{col_name}'")
+        if not cursor.fetchone():
+            cursor.execute(f"ALTER TABLE core_user ADD COLUMN {col_name} {col_def}")
+            print(f"[entrypoint] Added core_user.{col_name}", flush=True)
 
-    def create_user(username, first_name, last_name, email, password):
-        try:
-            cursor.execute("SELECT id FROM core_user WHERE username = %s LIMIT 1", [username])
-            if cursor.fetchone():
-                print(f"[entrypoint] {username} already exists, skipping", flush=True)
-                return
-            cols = ['password', 'username', 'first_name', 'last_name', 'email', 'role', 'is_superuser', 'is_staff', 'is_active']
-            vals = [make_password(password), username, first_name, last_name, email, 'super_admin', True, True, True]
-            if 'phone' in not_null:
-                cols.append('phone')
-                vals.append('')
-            if 'is_active_employee' in not_null:
-                cols.append('is_active_employee')
-                vals.append(True)
-            cols.append('date_joined')
-            ph = ', '.join(['%s'] * len(vals)) + ', NOW()'
-            sql = f"INSERT INTO core_user ({','.join(cols)}) VALUES ({ph})"
-            cursor.execute(sql, vals)
-            print(f"[entrypoint] Created: {username}", flush=True)
-        except Exception as e:
-            print(f"[entrypoint] Error creating {username}: {e}", flush=True)
+    # Add missing columns to core_customer
+    cust_cols = [
+        ('division', 'VARCHAR(20) DEFAULT \'GEN\''),
+        ('address', 'TEXT DEFAULT \'\''),
+        ('updated_at', 'TIMESTAMP DEFAULT NOW()'),
+        ('created_at', 'TIMESTAMP DEFAULT NOW()'),
+        ('is_active', 'BOOLEAN DEFAULT true'),
+        ('name', 'VARCHAR(200) DEFAULT \'\''),
+        ('company', 'VARCHAR(200) DEFAULT \'\''),
+        ('contact_name', 'VARCHAR(200) DEFAULT \'\''),
+        ('phone', 'VARCHAR(30) DEFAULT \'\''),
+        ('email', 'VARCHAR(200) DEFAULT \'\''),
+        ('notes', 'TEXT DEFAULT \'\''),
+    ]
+    for col_name, col_def in cust_cols:
+        cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='core_customer' AND column_name='{col_name}'")
+        if not cursor.fetchone():
+            cursor.execute(f"ALTER TABLE core_customer ADD COLUMN {col_name} {col_def}")
+            print(f"[entrypoint] Added core_customer.{col_name}", flush=True)
 
-    create_user('admin', 'Admin', 'User', 'admin@stateelectric.co', 'ChangeMe123!')
-    create_user('rhonda', 'Rhonda', 'Teague', 'rmc0819@gmail.com', 'StateElectric2026!')
-    create_user('john', 'John', 'Teague', 'jet@stateelectricco.com', 'StateElectric2026!')
-    
-    # Also reset rhonda's password to make sure it's correct
-    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'rhonda'", [make_password('StateElectric2026!')])
-    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'john'", [make_password('StateElectric2026!')])
-    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'admin'", [make_password('ChangeMe123!')])
-    print("[entrypoint] Passwords reset", flush=True)
+    # Create/reset superusers
+    for uname, fname, lname, email, pwd in [
+        ('admin', 'Admin', 'User', 'admin@stateelectric.co', 'ChangeMe123!'),
+        ('rhonda', 'Rhonda', 'Teague', 'rmc0819@gmail.com', 'StateElectric2026!'),
+        ('john', 'John', 'Teague', 'jet@stateelectricco.com', 'StateElectric2026!'),
+    ]:
+        cursor.execute("SELECT id FROM core_user WHERE username = %s LIMIT 1", [uname])
+        if cursor.fetchone():
+            cursor.execute("UPDATE core_user SET password = %s, is_superuser = true, is_staff = true, role = 'super_admin' WHERE username = %s", [make_password(pwd), uname])
+            print(f"[entrypoint] Reset: {uname}", flush=True)
+        else:
+            cursor.execute(
+                "INSERT INTO core_user (password, username, first_name, last_name, email, role, is_superuser, is_staff, is_active, phone, is_active_employee, date_joined) VALUES (%s, %s, %s, %s, %s, 'super_admin', true, true, true, '', true, NOW())",
+                [make_password(pwd), uname, fname, lname, email]
+            )
+            print(f"[entrypoint] Created: {uname}", flush=True)
+
+    print("[entrypoint] Superusers ready", flush=True)
 except Exception as e:
-    print(f"[entrypoint] Superuser creation error: {e}", flush=True)
+    print(f"[entrypoint] Error: {e}", flush=True)
 
 # Start gunicorn (replaces this process)
 print(f"[entrypoint] Starting gunicorn on port {port}", flush=True)
