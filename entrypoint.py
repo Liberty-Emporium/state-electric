@@ -19,10 +19,36 @@ result = subprocess.run(
 )
 print(f"[entrypoint] Migrate exit code: {result.returncode}", flush=True)
 
-# Create superusers (raw SQL to handle schema differences)
+# Fix missing columns (idempotent - safe to run every time)
 from django.db import connection
-from django.contrib.auth.hashers import make_password
 cursor = connection.cursor()
+
+def add_column(table, col_name, col_type, default=None):
+    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{col_name}'")
+    if not cursor.fetchone():
+        sql = f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+        if default is not None:
+            sql += f" DEFAULT {default}"
+            if 'NOT NULL' not in col_type:
+                pass
+            else:
+                sql += " NOT NULL"
+        cursor.execute(sql)
+        print(f"[entrypoint] Added {table}.{col_name}", flush=True)
+    else:
+        print(f"[entrypoint] {table}.{col_name} exists", flush=True)
+
+# Fix core_user
+add_column('core_user', 'hourly_rate', 'DECIMAL(7,2)', '25.00')
+add_column('core_user', 'division_id', 'INTEGER', None)
+
+# Fix core_customer
+add_column('core_customer', 'division', 'VARCHAR(20)', "'GEN' NOT NULL")
+add_column('core_customer', 'address', 'TEXT', "'' NOT NULL")
+add_column('core_customer', 'updated_at', 'TIMESTAMP', 'NOW() NOT NULL')
+
+# Create superusers (raw SQL to handle schema differences)
+from django.contrib.auth.hashers import make_password
 
 cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='core_user' AND is_nullable='NO'")
 not_null = {row[0] for row in cursor.fetchall()}
