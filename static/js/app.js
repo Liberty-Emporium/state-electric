@@ -235,12 +235,13 @@ async function renderVendors(content) {
 
 async function renderInvoices(content) {
     content.innerHTML = `<div class="page-header"><h2>📄 Invoices</h2><p>Loading...</p></div>`;
-    const invoices = await api('/invoices/');
-    if (!invoices) { content.innerHTML = '<div class="page-header"><h2>📄 Invoices</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
+    const resp = await api('/invoices/');
+    if (!resp) { content.innerHTML = '<div class="page-header"><h2>📄 Invoices</h2><p style="color:var(--danger)">Failed to load</p></div>'; return; }
+    const invoices = resp.results || resp;
     content.innerHTML = `
         <div class="page-header"><h2>📄 Invoices</h2><p>${invoices.length} invoices</p></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Balance</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody>${invoices.slice(0,50).map(inv => `<tr><td>${inv.invoice_number||inv.id}</td><td>${inv.customer_name||inv.customer||''}</td><td>$${(inv.total||0).toLocaleString()}</td><td>$${(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='paid'?'badge-success':inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||'draft'}</span></td><td>${(inv.date_created||'').toString().slice(0,10)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${invoices.slice(0,50).map(inv => `<tr><td>${inv.invoice_number||inv.id}</td><td>${inv.customer_name||inv.customer||''}</td><td>$${(inv.total||0).toLocaleString()}</td><td>$${(inv.balance_due||0).toLocaleString()}</td><td><span class="badge ${inv.status==='paid'?'badge-success':inv.status==='overdue'?'badge-danger':'badge-warning'}">${inv.status||'draft'}</span></td><td>${(inv.date_created||'').toString().slice(0,10)}</td></tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">No invoices found</td></tr>'}</tbody></table></div>
     `;
 }
 
