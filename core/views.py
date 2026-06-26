@@ -78,7 +78,7 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
-class UserListCreateView(generics.ListCreateView):
+class UserListCreateView(generics.ListCreateAPIView):
     serializer_class = UserSerializer
 
     def get_permissions(self):
