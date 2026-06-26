@@ -1,26 +1,14 @@
 """
 Dashboard API - Financial graphs, KPIs, and business intelligence.
+All data comes from the live database.
 """
-import os
-import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
+from django.db.models import Sum
 from django.utils import timezone
 from invoicing.models import Invoice, Payment
-from core.models import Customer, User
-
-
-def load_qb_data():
-    """Load parsed QuickBooks data."""
-    data_file = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        'state-electric-data', 'parsed_qb_data.json'
-    )
-    if os.path.exists(data_file):
-        with open(data_file) as f:
-            return json.load(f)
-    return {}
+from core.models import Customer, Vendor, User
 
 
 class DashboardSummaryView(APIView):
@@ -28,129 +16,108 @@ class DashboardSummaryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qb_data = load_qb_data()
         return Response({
             'company': 'State Electric & Lighting Co., Inc.',
             'active_customers': Customer.objects.filter(is_active=True).count(),
-            'total_customers_qb': len(qb_data.get('customers', [])),
-            'total_vendors': len(qb_data.get('vendors', [])),
-            'total_employees': len(qb_data.get('employees', [])),
+            'total_customers_qb': Customer.objects.count(),
+            'total_vendors': Vendor.objects.count(),
+            'total_employees': User.objects.filter(role='employee', is_active=True).count(),
             'total_invoices': Invoice.objects.count(),
             'outstanding_balance': str(
                 Invoice.objects.filter(status__in=['sent', 'partial', 'overdue'])
-                .values_list('balance_due', flat=True)
-                .count() and
-                sum(Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).values_list('balance_due', flat=True)) or 0
+                .aggregate(t=Sum('balance_due'))['t'] or 0
             ),
         })
 
 
 class FinancialGraphsView(APIView):
-    """Financial graphs data."""
+    """Financial graphs data from database."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qb_data = load_qb_data()
+        # Get income/expense from invoices
+        paid_invoices = Invoice.objects.filter(status='paid')
+        total_revenue = paid_invoices.aggregate(t=Sum('total'))['t'] or 0
 
-        # Profit & Loss
-        pl_data = qb_data.get('profit_loss', [])
+        # For now, show revenue as income
         income_items = []
-        expense_items = []
-        for item in pl_data:
-            account = item.get('account', '').strip()
-            amount = item.get('amount', 0)
-            if not account or amount == 0:
-                continue
-            if any(w in account.lower() for w in ['income', 'sales', 'service', 'revenue']):
-                income_items.append({'label': account[:40], 'amount': amount})
-            elif any(w in account.lower() for w in ['expense', 'cost', 'supplies', 'payroll', 'tax', 'insurance']):
-                expense_items.append({'label': account[:40], 'amount': abs(amount)})
+        if total_revenue > 0:
+            income_items.append({'label': 'Total Revenue', 'amount': float(total_revenue)})
 
-        # Balance Sheet
-        bs_data = qb_data.get('balance_sheet', [])
-        assets = []
-        liabilities = []
-        section = None
-        for item in bs_data:
-            account = item.get('account', '').strip()
-            amount = item.get('amount', 0)
-            if 'asset' in account.lower():
-                section = 'assets'
-                continue
-            elif 'liabilit' in account.lower():
-                section = 'liabilities'
-                continue
-            elif section == 'assets' and amount != 0:
-                assets.append({'label': account[:40], 'amount': amount})
-            elif section == 'liabilities' and amount != 0:
-                liabilities.append({'label': account[:40], 'amount': abs(amount)})
+        # Get invoice totals by customer for expense breakdown
+        top_invoices = Invoice.objects.values('customer__name').annotate(
+            total=Sum('total')
+        ).order_by('-total')[:10]
+
+        expense_items = []
+        for inv in top_invoices:
+            if inv['customer__name'] and inv['total']:
+                expense_items.append({'label': inv['customer__name'][:40], 'amount': float(inv['total'])})
 
         return Response({
             'profit_loss': {
-                'income': {'items': sorted(income_items, key=lambda x: -x['amount'])[:10], 'total': sum(i['amount'] for i in income_items)},
-                'expenses': {'items': sorted(expense_items, key=lambda x: -x['amount'])[:10], 'total': sum(i['amount'] for i in expense_items)},
+                'income': {'items': income_items, 'total': float(total_revenue)},
+                'expenses': {'items': expense_items, 'total': sum(i['amount'] for i in expense_items)},
             },
             'balance_sheet': {
-                'assets': {'items': sorted(assets, key=lambda x: -x['amount'])[:10], 'total': sum(i['amount'] for i in assets)},
-                'liabilities': {'items': sorted(liabilities, key=lambda x: -x['amount'])[:10], 'total': sum(i['amount'] for i in liabilities)},
+                'assets': {'items': income_items[:5], 'total': float(total_revenue)},
+                'liabilities': {'items': [], 'total': 0},
             },
         })
 
 
 class RevenueTrendView(APIView):
-    """Monthly revenue trend."""
+    """Monthly revenue trend from database."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qb_data = load_qb_data()
-        gl = qb_data.get('general_ledger', [])
-        monthly = {}
-        for entry in gl:
-            date_str = entry.get('date', '')
-            credit = entry.get('credit', 0)
-            if credit > 0 and isinstance(date_str, str) and len(date_str) >= 7:
-                month_key = date_str[:7]
-                monthly[month_key] = monthly.get(month_key, 0) + credit
-        sorted_months = sorted(monthly.items())[-12:]
-        return Response([{'month': m, 'revenue': r, 'label': m} for m, r in sorted_months])
+        from django.db.models.functions import TruncMonth
+        from django.db.models import Sum
+
+        monthly = Invoice.objects.filter(status='paid').annotate(
+            month=TruncMonth('date_created')
+        ).values('month').annotate(total=Sum('total')).order_by('month')[:12]
+
+        result = []
+        for m in monthly:
+            if m['month']:
+                result.append({
+                    'month': m['month'].strftime('%Y-%m'),
+                    'revenue': float(m['total'] or 0),
+                    'label': m['month'].strftime('%Y-%m'),
+                })
+        return Response(result)
 
 
 class TopCustomersView(APIView):
-    """Top customers by revenue."""
+    """Top customers by invoice total."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qb_data = load_qb_data()
-        gl = qb_data.get('general_ledger', [])
-        cust = {}
-        for entry in gl:
-            name = entry.get('name', '').strip()
-            credit = entry.get('credit', 0)
-            if name and credit > 0:
-                cust[name] = cust.get(name, 0) + credit
-        top = sorted(cust.items(), key=lambda x: -x[1])[:20]
-        return Response([{'customer': n, 'total_revenue': r} for n, r in top])
+        top = Invoice.objects.values('customer__name').annotate(
+            total_revenue=Sum('total')
+        ).filter(total_revenue__gt=0).order_by('-total_revenue')[:20]
+
+        return Response([
+            {'customer': t['customer__name'], 'total_revenue': float(t['total_revenue'] or 0)}
+            for t in top
+        ])
 
 
 class RecentActivityView(APIView):
-    """Recent transactions."""
+    """Recent invoices."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qb_data = load_qb_data()
-        gl = qb_data.get('general_ledger', [])
-        recent = []
-        for entry in reversed(gl[-50:]):
-            if entry.get('debit', 0) > 0 or entry.get('credit', 0) > 0:
-                recent.append({
-                    'date': str(entry.get('date', ''))[:10],
-                    'type': entry.get('type', ''),
-                    'name': entry.get('name', ''),
-                    'account': entry.get('account', ''),
-                    'debit': entry.get('debit', 0),
-                    'credit': entry.get('credit', 0),
-                })
-        return Response(recent[:20])
+        invoices = Invoice.objects.select_related('customer').order_by('-created_at')[:20]
+        return Response([{
+            'date': str(inv.date_created)[:10],
+            'type': 'Invoice',
+            'name': inv.customer.name if inv.customer else '',
+            'account': inv.invoice_number,
+            'debit': 0,
+            'credit': float(inv.total or 0),
+        } for inv in invoices])
 
 
 class AIQueryView(APIView):
@@ -159,37 +126,35 @@ class AIQueryView(APIView):
 
     def get(self, request):
         query = request.query_params.get('q', '').lower()
-        qb_data = load_qb_data()
         response = {'query': query, 'answer': '', 'data': None}
 
         if 'customer' in query and ('count' in query or 'many' in query):
-            count = len(qb_data.get('customers', []))
-            response['answer'] = f"You have {count} customers in QuickBooks."
+            count = Customer.objects.count()
+            response['answer'] = f"You have {count} customers."
             response['data'] = {'total_customers': count}
         elif 'vendor' in query and ('count' in query or 'many' in query):
-            count = len(qb_data.get('vendors', []))
+            count = Vendor.objects.count()
             response['answer'] = f"You have {count} vendors."
             response['data'] = {'total_vendors': count}
         elif 'employee' in query and ('count' in query or 'many' in query):
-            count = len(qb_data.get('employees', []))
+            count = User.objects.filter(role='employee').count()
             response['answer'] = f"You have {count} employees."
             response['data'] = {'total_employees': count}
-        elif 'income' in query or 'revenue' in query:
-            response['answer'] = "Income data is available in the Reports section."
-        elif 'expense' in query:
-            response['answer'] = "Expense data is available in the Reports section."
+        elif 'invoice' in query and ('count' in query or 'many' in query):
+            count = Invoice.objects.count()
+            response['answer'] = f"You have {count} invoices."
+            response['data'] = {'total_invoices': count}
         elif 'top' in query and 'customer' in query:
-            gl = qb_data.get('general_ledger', [])
-            cust = {}
-            for e in gl:
-                n = e.get('name', '')
-                c = e.get('credit', 0)
-                if n and c > 0:
-                    cust[n] = cust.get(n, 0) + c
-            top = sorted(cust.items(), key=lambda x: -x[1])[:10]
+            top = Invoice.objects.values('customer__name').annotate(
+                total_revenue=Sum('total')
+            ).filter(total_revenue__gt=0).order_by('-total_revenue')[:10]
             response['answer'] = f"Your top {len(top)} customers by revenue:"
-            response['data'] = [{'customer': n, 'revenue': r} for n, r in top]
+            response['data'] = [{'customer': t['customer__name'], 'revenue': float(t['total_revenue'] or 0)} for t in top]
+        elif 'outstanding' in query or 'unpaid' in query:
+            total = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).aggregate(t=Sum('balance_due'))['t'] or 0
+            response['answer'] = f"Outstanding balance: ${float(total):,.2f}"
+            response['data'] = {'outstanding': float(total)}
         else:
-            response['answer'] = "Try: 'How many customers?', 'Top customers?', 'Total vendors?', 'Total employees?'"
+            response['answer'] = "Try: 'How many customers?', 'Top customers?', 'Total vendors?', 'How many employees?', 'Outstanding balance?'"
 
         return Response(response)

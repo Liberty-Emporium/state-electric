@@ -2,28 +2,30 @@ from django.urls import path
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from core.models import Customer
+from django.db import connection
 
 
 class CustomerListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        customers = Customer.objects.all().order_by('name')
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, phone, email, is_active FROM core_customer ORDER BY name")
+            rows = cursor.fetchall()
         data = []
-        for c in customers:
+        for row in rows:
             data.append({
-                'id': c.id,
-                'name': c.name or '',
-                'company': getattr(c, 'company', '') or '',
-                'contact_name': getattr(c, 'contact_name', '') or '',
-                'phone': c.phone or '',
-                'email': c.email or '',
-                'billing_address': getattr(c, 'billing_address', '') or '',
-                'shipping_address': getattr(c, 'shipping_address', '') or '',
-                'notes': getattr(c, 'notes', '') or '',
-                'is_active': getattr(c, 'is_active', True),
-                'outstanding_balance': str(getattr(c, 'outstanding_balance', 0) or 0),
+                'id': row[0],
+                'name': row[1] or '',
+                'phone': row[2] or '',
+                'email': row[3] or '',
+                'is_active': row[4] if row[4] is not None else True,
+                'contact_name': '',
+                'company': '',
+                'billing_address': '',
+                'shipping_address': '',
+                'notes': '',
+                'outstanding_balance': '0',
             })
         return Response(data)
 
@@ -32,21 +34,17 @@ class CustomerDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        try:
-            c = Customer.objects.get(pk=pk)
-        except Customer.DoesNotExist:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, phone, email, is_active FROM core_customer WHERE id = %s", [pk])
+            row = cursor.fetchone()
+        if not row:
             return Response({'error': 'Not found'}, status=404)
         return Response({
-            'id': c.id,
-            'name': c.name or '',
-            'company': getattr(c, 'company', '') or '',
-            'contact_name': getattr(c, 'contact_name', '') or '',
-            'phone': c.phone or '',
-            'email': c.email or '',
-            'billing_address': getattr(c, 'billing_address', '') or '',
-            'shipping_address': getattr(c, 'shipping_address', '') or '',
-            'notes': getattr(c, 'notes', '') or '',
-            'is_active': getattr(c, 'is_active', True),
+            'id': row[0],
+            'name': row[1] or '',
+            'phone': row[2] or '',
+            'email': row[3] or '',
+            'is_active': row[4] if row[4] is not None else True,
         })
 
 

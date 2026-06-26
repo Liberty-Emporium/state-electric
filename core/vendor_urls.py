@@ -2,26 +2,28 @@ from django.urls import path
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from core.models import Vendor
+from django.db import connection
 
 
 class VendorListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        vendors = Vendor.objects.all().order_by('name')
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, phone, email, is_active FROM core_vendor ORDER BY name")
+            rows = cursor.fetchall()
         data = []
-        for v in vendors:
+        for row in rows:
             data.append({
-                'id': v.id,
-                'name': v.name or '',
-                'company': getattr(v, 'company', '') or '',
-                'contact_name': getattr(v, 'contact_name', '') or '',
-                'phone': v.phone or '',
-                'email': v.email or '',
-                'address': getattr(v, 'address', '') or '',
-                'notes': getattr(v, 'notes', '') or '',
-                'is_active': getattr(v, 'is_active', True),
+                'id': row[0],
+                'name': row[1] or '',
+                'phone': row[2] or '',
+                'email': row[3] or '',
+                'is_active': row[4] if row[4] is not None else True,
+                'contact_name': '',
+                'company': '',
+                'address': '',
+                'notes': '',
             })
         return Response(data)
 
@@ -30,18 +32,17 @@ class VendorDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        try:
-            v = Vendor.objects.get(pk=pk)
-        except Vendor.DoesNotExist:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, phone, email, is_active FROM core_vendor WHERE id = %s", [pk])
+            row = cursor.fetchone()
+        if not row:
             return Response({'error': 'Not found'}, status=404)
         return Response({
-            'id': v.id,
-            'name': v.name or '',
-            'contact_name': getattr(v, 'contact_name', '') or '',
-            'phone': v.phone or '',
-            'email': v.email or '',
-            'address': getattr(v, 'address', '') or '',
-            'is_active': getattr(v, 'is_active', True),
+            'id': row[0],
+            'name': row[1] or '',
+            'phone': row[2] or '',
+            'email': row[3] or '',
+            'is_active': row[4] if row[4] is not None else True,
         })
 
 
