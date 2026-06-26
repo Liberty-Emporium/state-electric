@@ -36,32 +36,43 @@ class FinancialGraphsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        # Get income/expense from invoices
+        # Get invoice data
         paid_invoices = Invoice.objects.filter(status='paid')
         total_revenue = paid_invoices.aggregate(t=Sum('total'))['t'] or 0
 
-        # For now, show revenue as income
         income_items = []
+        expense_items = []
+
         if total_revenue > 0:
             income_items.append({'label': 'Total Revenue', 'amount': float(total_revenue)})
 
-        # Get invoice totals by customer for expense breakdown
+        # Get top customers by invoice total
         top_invoices = Invoice.objects.values('customer__name').annotate(
             total=Sum('total')
-        ).order_by('-total')[:10]
+        ).filter(total__gt=0).order_by('-total')[:10]
 
-        expense_items = []
         for inv in top_invoices:
             if inv['customer__name'] and inv['total']:
                 expense_items.append({'label': inv['customer__name'][:40], 'amount': float(inv['total'])})
 
+        # If no invoice data, show customer count as a metric
+        if not income_items:
+            customer_count = Customer.objects.count()
+            if customer_count > 0:
+                income_items.append({'label': f'{customer_count} Customers', 'amount': float(customer_count)})
+
+        if not expense_items:
+            vendor_count = Vendor.objects.count()
+            if vendor_count > 0:
+                expense_items.append({'label': f'{vendor_count} Vendors', 'amount': float(vendor_count)})
+
         return Response({
             'profit_loss': {
-                'income': {'items': income_items, 'total': float(total_revenue)},
+                'income': {'items': income_items, 'total': float(total_revenue) or float(Customer.objects.count())},
                 'expenses': {'items': expense_items, 'total': sum(i['amount'] for i in expense_items)},
             },
             'balance_sheet': {
-                'assets': {'items': income_items[:5], 'total': float(total_revenue)},
+                'assets': {'items': income_items[:5], 'total': float(total_revenue) or float(Customer.objects.count())},
                 'liabilities': {'items': [], 'total': 0},
             },
         })
@@ -91,17 +102,26 @@ class RevenueTrendView(APIView):
 
 
 class TopCustomersView(APIView):
-    """Top customers by invoice total."""
+    """Top customers by invoice total, or all customers if no invoices."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # Try invoice-based ranking first
         top = Invoice.objects.values('customer__name').annotate(
             total_revenue=Sum('total')
         ).filter(total_revenue__gt=0).order_by('-total_revenue')[:20]
 
+        if top:
+            return Response([
+                {'customer': t['customer__name'], 'total_revenue': float(t['total_revenue'] or 0)}
+                for t in top
+            ])
+
+        # Fallback: show all customers
+        customers = Customer.objects.filter(is_active=True).order_by('name')[:20]
         return Response([
-            {'customer': t['customer__name'], 'total_revenue': float(t['total_revenue'] or 0)}
-            for t in top
+            {'customer': c.name, 'total_revenue': 0}
+            for c in customers
         ])
 
 

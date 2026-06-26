@@ -188,14 +188,18 @@ function renderBars(items, type) {
 async function askAI() {
     const q = document.getElementById('ai-q').value;
     if (!q) return;
+    document.getElementById('ai-res').textContent = 'Thinking...';
     const res = await api('/reports/dashboard/ask/?q=' + encodeURIComponent(q));
-    document.getElementById('ai-res').innerHTML = res?.answer || 'No response';
-    if (res?.data && Array.isArray(res.data)) {
-        document.getElementById('ai-res').innerHTML += '<br><br>' +
-            res.data.map(d => `• ${d.customer}: <span style="color:var(--success)">$${d.revenue.toLocaleString()}</span>`).join('<br>');
+    if (res) {
+        document.getElementById('ai-res').innerHTML = '<strong>Answer:</strong> ' + (res.answer || 'No response');
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+            document.getElementById('ai-res').innerHTML += '<br><br>' +
+                res.data.map(d => `• ${d.customer}: <span style="color:var(--success)">$${(d.revenue||0).toLocaleString()}</span>`).join('<br>');
+        }
+    } else {
+        document.getElementById('ai-res').textContent = 'Error getting response';
     }
 }
-
 function quickAsk(q) {
     document.getElementById('ai-q').value = q;
     askAI();
