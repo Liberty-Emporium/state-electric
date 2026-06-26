@@ -2,25 +2,17 @@ from rest_framework import serializers
 from core.models import Customer, Vendor
 
 
-class UserSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField()
-    email = serializers.EmailField()
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
+class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    role = serializers.CharField()
     role_display = serializers.SerializerMethodField()
-    phone = serializers.CharField()
-    is_active = serializers.BooleanField()
-    is_active_employee = serializers.BooleanField()
-    created_at = serializers.DateTimeField(read_only=True)
 
-    def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}".strip()
-
-    def get_role_display(self, obj):
-        return obj.get_role_display()
+    class Meta:
+        from core.models import User
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name',
+                  'role', 'role_display', 'phone', 'is_active',
+                  'is_active_employee', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()

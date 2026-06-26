@@ -35,35 +35,41 @@ class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username', '')
         password = request.data.get('password', '')
-        try:
-            user = authenticate(username=username, password=password)
-            if user is None:
-                return Response({'error': 'Invalid credentials'}, status=401)
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'role': user.role,
-                    'phone': user.phone or '',
-                    'is_active': user.is_active,
-                },
-            })
-        except Exception as e:
-            return Response({'error': str(e)}, status=500)
+        user = authenticate(username=username, password=password)
+        if user is None:
+            return Response({'detail': 'Invalid credentials'}, status=401)
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email or '',
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'role': user.role,
+                'phone': user.phone or '',
+                'is_active': user.is_active,
+            },
+        })
 
 
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
+        user = request.user
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email or '',
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'role': user.role,
+            'phone': user.phone or '',
+            'is_active': user.is_active,
+        })
 
     def patch(self, request):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
@@ -72,7 +78,7 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
-class UserListCreateView(generics.ListCreateAPIView):
+class UserListCreateView(generics.ListCreateView):
     serializer_class = UserSerializer
 
     def get_permissions(self):

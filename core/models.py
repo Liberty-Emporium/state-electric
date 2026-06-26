@@ -28,7 +28,6 @@ class User(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
     phone = models.CharField(max_length=30, blank=True, default='')
-    hourly_rate = models.DecimalField(max_digits=7, decimal_places=2, default=25.00, null=True, blank=True)
     is_active_employee = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
