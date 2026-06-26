@@ -1,57 +1,32 @@
 """
-Write a temp import script directly on Railway using raw SQL.
-Handles all NOT NULL constraints dynamically.
+Import QuickBooks data into Railway database.
+Run: python run_import.py
 """
-import os, sys, django
+import os
+import sys
+import json
+import django
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 sys.path.insert(0, os.path.dirname(__file__))
 django.setup()
-from django.db import connection
-import json
 
-# Load parsed QB data - try multiple paths
-possible_paths = [
-    os.path.join(os.path.dirname(__file__), 'state-electric-data', 'parsed_qb_data.json'),
-    '/home/django/state-electric-data/parsed_qb_data.json',
-    '/state-electric-data/parsed_qb_data.json',
-]
-data_file = None
-for p in possible_paths:
-    if os.path.exists(p):
-        data_file = p
-        break
-if not data_file:
-    # List what's available
-    print("Looking for data file...")
-    for p in possible_paths:
-        print(f"  {p}: {'EXISTS' if os.path.exists(p) else 'NOT FOUND'}")
-    # Try to find it
-    for root, dirs, files in os.walk('/home/django'):
-        for f in files:
-            if f == 'parsed_qb_data.json':
-                data_file = os.path.join(root, f)
-                print(f"  Found at: {data_file}")
-                break
-        if data_file:
-            break
+from django.db import connection
+from django.contrib.auth.hashers import make_password
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data_file = os.path.join(BASE_DIR, 'state-electric-data', 'parsed_qb_data.json')
+
 with open(data_file) as f:
     data = json.load(f)
 
-# Get NOT NULL columns for core_customer
 cursor = connection.cursor()
-cursor.execute("""
-    SELECT column_name, is_nullable, column_default 
-    FROM information_schema.columns 
-    WHERE table_name='core_customer' AND is_nullable='NO'
-""")
-not_null_cols = {row[0]: row[2] for row in cursor.fetchall()}
-print("NOT NULL columns:", not_null_cols)
 
-# Import customers
+# ============================================
+# IMPORT CUSTOMERS
+# ============================================
 customers = data.get('customers', [])
-created = 0
-skipped = 0
-errors = 0
+created = skipped = errors = 0
 
 for c in customers:
     name = c.get('company', '').strip()
@@ -72,9 +47,9 @@ for c in customers:
               f"Contact: {c.get('full_name', '')}\nBilling: {c.get('billing_address', '')}\nShipping: {c.get('shipping_address', '')}"])
         created += 1
     except Exception as e:
-        # If division is required, try with it
+        cursor.connection.rollback()
+        # Try with division
         try:
-            cursor.connection.rollback()
             cursor.execute("""
                 INSERT INTO core_customer (name, company, division, phone, email, notes, is_active, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, true, NOW(), NOW())
@@ -84,16 +59,16 @@ for c in customers:
         except Exception as e2:
             cursor.connection.rollback()
             errors += 1
-            if errors <= 3:
-                print(f"  Error importing '{name}': {e2}")
+            if errors <= 5:
+                print(f"  Error: {name}: {str(e2)[:100]}")
 
-print(f"\nCustomers: {created} created, {skipped} skipped, {errors} errors")
+print(f"Customers: {created} created, {skipped} skipped, {errors} errors")
 
-# Import employees
+# ============================================
+# IMPORT EMPLOYEES
+# ============================================
 employees = data.get('employees', [])
 emp_created = emp_skipped = emp_errors = 0
-
-from django.contrib.auth.hashers import make_password
 
 for e in employees:
     name = e.get('name', '').strip().replace('*', '').strip()
@@ -119,16 +94,18 @@ for e in employees:
     except Exception as e2:
         cursor.connection.rollback()
         emp_errors += 1
-        if emp_errors <= 3:
-            print(f"  Error importing '{username}': {e2}")
+        if emp_errors <= 5:
+            print(f"  Error: {username}: {str(e2)[:100]}")
 
 print(f"Employees: {emp_created} created, {emp_skipped} skipped, {emp_errors} errors")
 
-# Show totals
+# ============================================
+# SUMMARY
+# ============================================
 cursor.execute("SELECT COUNT(*) FROM core_customer")
 print(f"\nTotal customers in DB: {cursor.fetchone()[0]}")
-cursor.execute("SELECT COUNT(*) FROM core_user")
-print(f"Total users in DB: {cursor.fetchone()[0]}")
+cursor.execute("SELECT COUNT(*) FROM core_user WHERE role='employee'")
+print(f"Total employees in DB: {cursor.fetchone()[0]}")
 
 connection.commit()
 print("\n✅ Import complete!")
