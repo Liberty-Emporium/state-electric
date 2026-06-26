@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>State Electric & Lighting</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-logo">⚡</div>
+            <h1>State Electric & Lighting</h1>
+            <p class="login-sub">Business Management</p>
+            <form id="login-form" onsubmit="doLogin(event)">
+                <input type="text" id="username" placeholder="Username" required autocomplete="username">
+                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+            <p id="login-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="screen">
+        <!-- Sidebar (desktop) / Bottom nav (mobile) -->
+        <nav id="sidebar" class="sidebar">
+            <div class="nav-logo">⚡ SEC</div>
+            <div class="nav-items" id="nav-items">
+                <!-- Filled by JS -->
+            </div>
+            <div class="nav-footer">
+                <div class="nav-user" id="nav-user"></div>
+                <button class="btn-logout" onclick="doLogout()">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Content area -->
+        <main id="main-content" class="main-content">
+            <!-- Filled by JS -->
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
