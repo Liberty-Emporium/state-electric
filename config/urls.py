@@ -33,9 +33,3 @@ urlpatterns = [
     path('api/payroll/', include('payroll.urls')),
     path('', serve_app, name='home'),
 ]
-
-# SPA catch-all: serve index.html for any non-API route
-from django.urls import re_path
-urlpatterns += [
-    re_path(r'^(?!api/|admin/|static/).*$', serve_app),
-]
