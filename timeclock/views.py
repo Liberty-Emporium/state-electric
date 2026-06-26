@@ -5,7 +5,24 @@ from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta
 from timeclock.models import TimeEntry
-from timeclock.serializers import TimeEntrySerializer
+
+
+class TimeEntryListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        entries = TimeEntry.objects.filter(employee=request.user).order_by('-date', '-time_in')[:50]
+        data = []
+        for e in entries:
+            data.append({
+                'id': e.id,
+                'date': str(e.date),
+                'time_in': str(e.time_in) if e.time_in else '',
+                'time_out': str(e.time_out) if e.time_out else '',
+                'hours_worked': getattr(e, 'hours_worked', 0) or 0,
+                'notes': getattr(e, 'notes', '') or '',
+            })
+        return Response(data)
 
 
 class ClockInView(APIView):

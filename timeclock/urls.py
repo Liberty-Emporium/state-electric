@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('', views.TimeEntryListView.as_view()),
     path('clock-in/', views.ClockInView.as_view()),
     path('clock-out/', views.ClockOutView.as_view()),
     path('current/', views.CurrentStatusView.as_view()),
