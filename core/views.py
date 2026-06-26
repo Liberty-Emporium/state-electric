@@ -35,24 +35,30 @@ class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username', '')
         password = request.data.get('password', '')
-        user = authenticate(username=username, password=password)
-        if user is None:
-            return Response({'detail': 'Invalid credentials'}, status=401)
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email or '',
-                'first_name': user.first_name or '',
-                'last_name': user.last_name or '',
-                'role': user.role,
-                'phone': user.phone or '',
-                'is_active': user.is_active,
-            },
-        })
+        try:
+            from django.contrib.auth import authenticate
+            user = authenticate(username=username, password=password)
+            if user is None:
+                return Response({'detail': 'Invalid credentials'}, status=401)
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': getattr(user, 'email', '') or '',
+                    'first_name': getattr(user, 'first_name', '') or '',
+                    'last_name': getattr(user, 'last_name', '') or '',
+                    'role': getattr(user, 'role', 'employee'),
+                    'phone': getattr(user, 'phone', '') or '',
+                    'is_active': getattr(user, 'is_active', True),
+                },
+            })
+        except Exception as e:
+            import traceback
+            return Response({'detail': str(e), 'trace': traceback.format_exc()[-500:]}, status=500)
 
 
 class MeView(APIView):

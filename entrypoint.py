@@ -60,6 +60,12 @@ try:
     create_user('admin', 'Admin', 'User', 'admin@stateelectric.co', 'ChangeMe123!')
     create_user('rhonda', 'Rhonda', 'Teague', 'rmc0819@gmail.com', 'StateElectric2026!')
     create_user('john', 'John', 'Teague', 'jet@stateelectricco.com', 'StateElectric2026!')
+    
+    # Also reset rhonda's password to make sure it's correct
+    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'rhonda'", [make_password('StateElectric2026!')])
+    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'john'", [make_password('StateElectric2026!')])
+    cursor.execute("UPDATE core_user SET password = %s WHERE username = 'admin'", [make_password('ChangeMe123!')])
+    print("[entrypoint] Passwords reset", flush=True)
 except Exception as e:
     print(f"[entrypoint] Superuser creation error: {e}", flush=True)
 
