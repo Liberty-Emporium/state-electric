@@ -7,22 +7,26 @@ from datetime import timedelta
 from timeclock.models import TimeEntry
 
 
+def entry_to_dict(e):
+    return {
+        'id': e.id,
+        'date': str(e.date),
+        'time_in': str(e.time_in) if e.time_in else '',
+        'time_out': str(e.time_out) if e.time_out else '',
+        'hours_worked': getattr(e, 'hours_worked', 0) or 0,
+        'earnings': getattr(e, 'earnings', 0) or 0,
+        'notes': getattr(e, 'notes', '') or '',
+        'employee': e.employee.get_full_name() or e.employee.username,
+        'username': e.employee.username,
+    }
+
+
 class TimeEntryListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         entries = TimeEntry.objects.filter(employee=request.user).order_by('-date', '-time_in')[:50]
-        data = []
-        for e in entries:
-            data.append({
-                'id': e.id,
-                'date': str(e.date),
-                'time_in': str(e.time_in) if e.time_in else '',
-                'time_out': str(e.time_out) if e.time_out else '',
-                'hours_worked': getattr(e, 'hours_worked', 0) or 0,
-                'notes': getattr(e, 'notes', '') or '',
-            })
-        return Response(data)
+        return Response([entry_to_dict(e) for e in entries])
 
 
 class ClockInView(APIView):
@@ -30,17 +34,15 @@ class ClockInView(APIView):
 
     def post(self, request):
         user = request.user
-        # Check if already clocked in
         active_entry = TimeEntry.objects.filter(employee=user, time_out__isnull=True).first()
         if active_entry:
             return Response({'error': 'Already clocked in', 'time_in': active_entry.time_in}, status=400)
-
         entry = TimeEntry.objects.create(
             employee=user,
             time_in=timezone.now(),
             notes=request.data.get('notes', ''),
         )
-        return Response(TimeEntrySerializer(entry).data)
+        return Response(entry_to_dict(entry))
 
 
 class ClockOutView(APIView):
@@ -51,11 +53,10 @@ class ClockOutView(APIView):
         entry = TimeEntry.objects.filter(employee=user, time_out__isnull=True).first()
         if not entry:
             return Response({'error': 'Not clocked in'}, status=400)
-
         entry.time_out = timezone.now()
         entry.notes = request.data.get('notes', entry.notes)
         entry.save()
-        return Response(TimeEntrySerializer(entry).data)
+        return Response(entry_to_dict(entry))
 
 
 class CurrentStatusView(APIView):
@@ -66,24 +67,17 @@ class CurrentStatusView(APIView):
         active = TimeEntry.objects.filter(employee=user, time_out__isnull=True).first()
         if active:
             current_hours = round((timezone.now() - active.time_in).total_seconds() / 3600, 2)
-            return Response({
-                'status': 'clocked_in',
-                'time_in': active.time_in,
-                'current_hours': current_hours,
-            })
+            return Response({'status': 'clocked_in', 'time_in': str(active.time_in), 'current_hours': current_hours})
         last = TimeEntry.objects.filter(employee=user).first()
-        return Response({
-            'status': 'clocked_out',
-            'last_clock_out': last.time_out if last else None,
-        })
+        return Response({'status': 'clocked_out', 'last_clock_out': str(last.time_out) if last else None})
 
 
-class MyTimeHistoryView(generics.ListAPIView):
-    serializer_class = TimeEntrySerializer
+class MyTimeHistoryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        return TimeEntry.objects.filter(employee=self.request.user).select_related('employee')
+    def get(self, request):
+        entries = TimeEntry.objects.filter(employee=request.user).order_by('-date', '-time_in')[:50]
+        return Response([entry_to_dict(e) for e in entries])
 
 
 class MyPayHistoryView(APIView):
@@ -96,10 +90,9 @@ class MyPayHistoryView(APIView):
         for entry in entries:
             week_key = entry.date.strftime('%Y-W%U')
             if week_key not in weeks:
-                weeks[week_key] = {'week': week_key, 'hours': 0, 'earnings': 0, 'date_range': f"{entry.date} to {entry.date + timedelta(days=6)}"}
-            weeks[week_key]['hours'] += float(entry.hours_worked)
-            weeks[week_key]['earnings'] += float(entry.earnings)
-
+                weeks[week_key] = {'week': week_key, 'hours': 0, 'earnings': 0}
+            weeks[week_key]['hours'] += float(getattr(entry, 'hours_worked', 0) or 0)
+            weeks[week_key]['earnings'] += float(getattr(entry, 'earnings', 0) or 0)
         result = sorted(weeks.values(), key=lambda x: x['week'], reverse=True)
         for r in result:
             r['hours'] = round(r['hours'], 2)
@@ -107,26 +100,26 @@ class MyPayHistoryView(APIView):
         return Response(result)
 
 
-class EmployeeTimeView(generics.ListAPIView):
-    serializer_class = TimeEntrySerializer
+class EmployeeTimeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        # Only office/admin can see other employees' time
-        if self.request.user.role == 'employee':
-            return TimeEntry.objects.filter(employee=self.request.user)
-        user_id = self.kwargs.get('user_id')
-        return TimeEntry.objects.filter(employee_id=user_id)
+    def get(self, request):
+        if request.user.role == 'employee':
+            entries = TimeEntry.objects.filter(employee=request.user)
+        else:
+            user_id = request.kwargs.get('user_id')
+            entries = TimeEntry.objects.filter(employee_id=user_id)
+        return Response([entry_to_dict(e) for e in entries.order_by('-date')[:50]])
 
 
 class ActiveEmployeesView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        active_entries = TimeEntry.objects.filter(time_out__isnull=True).select_related('employee')
+        active_entries = TimeEntry.objects.filter(time_out__isnull=True)
         return Response([{
-            'employee': str(e.employee),
+            'employee': e.employee.get_full_name() or e.employee.username,
             'username': e.employee.username,
-            'time_in': e.time_in,
+            'time_in': str(e.time_in),
             'hours_so_far': round((timezone.now() - e.time_in).total_seconds() / 3600, 2),
         } for e in active_entries])
