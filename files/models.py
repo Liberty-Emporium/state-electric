@@ -5,11 +5,17 @@ from django.conf import settings
 class BusinessDocument(models.Model):
     CATEGORY_CHOICES = [
         ('contract', 'Contract'),
+        ('invoice', 'Invoice'),
         ('invoice_copy', 'Invoice Copy'),
         ('receipt', 'Receipt'),
         ('permit', 'Permit'),
         ('insurance', 'Insurance Document'),
+        ('work_order', 'Work Order'),
+        ('estimate', 'Estimate / Quote'),
+        ('scan', 'Scanned Document'),
         ('photo', 'Job Photo'),
+        ('bank_doc', 'Bank Document'),
+        ('tax_doc', 'Tax Document'),
         ('other', 'Other'),
     ]
 
