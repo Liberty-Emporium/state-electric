@@ -1,112 +1,86 @@
 """
-Dashboard API - Financial graphs, KPIs, and business intelligence.
-All data comes from the live database.
+Dashboard API - Shows real data from the database.
+No fake numbers. Only shows what actually exists.
 """
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
-from django.db import connection
 from django.db.models import Sum
-from django.utils import timezone
 from invoicing.models import Invoice, Payment
 from core.models import Customer, Vendor, User
 
 
 class DashboardSummaryView(APIView):
-    """Main dashboard KPIs."""
+    """Main dashboard KPIs - real numbers only."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        active_customers = Customer.objects.count()
+        active_vendors = Vendor.objects.count()
+        employees = User.objects.filter(role='employee').count()
+        outstanding = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).aggregate(t=Sum('balance_due'))['t'] or 0
+
         return Response({
             'company': 'State Electric & Lighting Co., Inc.',
-            'active_customers': Customer.objects.filter(is_active=True).count(),
-            'total_customers_qb': Customer.objects.count(),
-            'total_vendors': Vendor.objects.count(),
-            'total_employees': User.objects.filter(role='employee', is_active=True).count(),
+            'active_customers': active_customers,
+            'total_vendors': active_vendors,
+            'total_employees': employees,
             'total_invoices': Invoice.objects.count(),
-            'outstanding_balance': str(
-                Invoice.objects.filter(status__in=['sent', 'partial', 'overdue'])
-                .aggregate(t=Sum('balance_due'))['t'] or 0
-            ),
+            'outstanding_balance': str(outstanding),
         })
 
 
 class FinancialGraphsView(APIView):
-    """Financial graphs data from database."""
+    """Financial data from actual invoices."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        # Get invoice data
-        paid_invoices = Invoice.objects.filter(status='paid')
-        total_revenue = paid_invoices.aggregate(t=Sum('total'))['t'] or 0
+        # Real invoice data
+        paid = Invoice.objects.filter(status='paid').aggregate(t=Sum('total'))['t'] or 0
+        outstanding = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).aggregate(t=Sum('balance_due'))['t'] or 0
 
         income_items = []
         expense_items = []
 
-        if total_revenue > 0:
-            income_items.append({'label': 'Total Revenue', 'amount': float(total_revenue)})
-
-        # Get top customers by invoice total
-        top_invoices = Invoice.objects.values('customer__name').annotate(
-            total=Sum('total')
-        ).filter(total__gt=0).order_by('-total')[:10]
-
-        for inv in top_invoices:
-            if inv['customer__name'] and inv['total']:
-                expense_items.append({'label': inv['customer__name'][:40], 'amount': float(inv['total'])})
-
-        # If no invoice data, show customer count as a metric
-        if not income_items:
-            customer_count = Customer.objects.count()
-            if customer_count > 0:
-                income_items.append({'label': f'{customer_count} Customers', 'amount': float(customer_count)})
-
-        if not expense_items:
-            vendor_count = Vendor.objects.count()
-            if vendor_count > 0:
-                expense_items.append({'label': f'{vendor_count} Vendors', 'amount': float(vendor_count)})
+        if paid > 0:
+            income_items.append({'label': 'Paid Invoices', 'amount': float(paid)})
+        if outstanding > 0:
+            expense_items.append({'label': 'Outstanding', 'amount': float(outstanding)})
 
         return Response({
             'profit_loss': {
-                'income': {'items': income_items, 'total': float(total_revenue) or float(Customer.objects.count())},
-                'expenses': {'items': expense_items, 'total': sum(i['amount'] for i in expense_items)},
+                'income': {'items': income_items, 'total': float(paid)},
+                'expenses': {'items': expense_items, 'total': float(outstanding)},
             },
             'balance_sheet': {
-                'assets': {'items': income_items[:5], 'total': float(total_revenue) or float(Customer.objects.count())},
-                'liabilities': {'items': [], 'total': 0},
+                'assets': {'items': income_items, 'total': float(paid)},
+                'liabilities': {'items': expense_items, 'total': float(outstanding)},
             },
         })
 
 
 class RevenueTrendView(APIView):
-    """Monthly revenue trend from database."""
+    """Monthly revenue from actual payments."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         from django.db.models.functions import TruncMonth
-        from django.db.models import Sum
+        monthly = Payment.objects.annotate(
+            month=TruncMonth('date')
+        ).values('month').annotate(total=Sum('amount')).order_by('month')[:12]
 
-        monthly = Invoice.objects.filter(status='paid').annotate(
-            month=TruncMonth('date_created')
-        ).values('month').annotate(total=Sum('total')).order_by('month')[:12]
-
-        result = []
-        for m in monthly:
-            if m['month']:
-                result.append({
-                    'month': m['month'].strftime('%Y-%m'),
-                    'revenue': float(m['total'] or 0),
-                    'label': m['month'].strftime('%Y-%m'),
-                })
-        return Response(result)
+        return Response([{
+            'month': m['month'].strftime('%Y-%m') if m['month'] else '',
+            'revenue': float(m['total'] or 0),
+            'label': m['month'].strftime('%b %Y') if m['month'] else '',
+        } for m in monthly])
 
 
 class TopCustomersView(APIView):
-    """Top customers by invoice total, or all customers if no invoices."""
+    """Top customers by actual invoice totals."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        # Try invoice-based ranking first
         top = Invoice.objects.values('customer__name').annotate(
             total_revenue=Sum('total')
         ).filter(total_revenue__gt=0).order_by('-total_revenue')[:20]
@@ -117,42 +91,32 @@ class TopCustomersView(APIView):
                 for t in top
             ])
 
-        # Fallback: show all customers using raw SQL
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT name FROM core_customer ORDER BY name LIMIT 20")
-            rows = cursor.fetchall()
+        # No invoices yet — show customers with note
+        customers = Customer.objects.all().order_by('name')[:20]
         return Response([
-            {'customer': row[0], 'total_revenue': 0}
-            for row in rows
+            {'customer': c.name, 'total_revenue': 0}
+            for c in customers
         ])
 
 
 class RecentActivityView(APIView):
-    """Recent invoices."""
+    """Recent invoices from database."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT inv.date_created, c.name, inv.invoice_number, inv.total
-                FROM invoicing_invoice inv
-                LEFT JOIN core_customer c ON inv.customer_id = c.id
-                ORDER BY inv.created_at DESC NULLS LAST
-                LIMIT 20
-            """)
-            rows = cursor.fetchall()
+        invoices = Invoice.objects.select_related('customer').order_by('-date_created')[:20]
         return Response([{
-            'date': str(row[0])[:10] if row[0] else '',
+            'date': str(inv.date_created)[:10],
             'type': 'Invoice',
-            'name': row[1] or '',
-            'account': row[2] or '',
+            'name': inv.customer.name if inv.customer else '',
+            'account': inv.invoice_number,
             'debit': 0,
-            'credit': float(row[3] or 0),
-        } for row in rows])
+            'credit': float(inv.total or 0),
+        } for inv in invoices])
 
 
 class AIQueryView(APIView):
-    """Simple query endpoint."""
+    """Answer questions with real data."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -162,30 +126,31 @@ class AIQueryView(APIView):
         if 'customer' in query and ('count' in query or 'many' in query):
             count = Customer.objects.count()
             response['answer'] = f"You have {count} customers."
-            response['data'] = {'total_customers': count}
         elif 'vendor' in query and ('count' in query or 'many' in query):
             count = Vendor.objects.count()
             response['answer'] = f"You have {count} vendors."
-            response['data'] = {'total_vendors': count}
         elif 'employee' in query and ('count' in query or 'many' in query):
             count = User.objects.filter(role='employee').count()
             response['answer'] = f"You have {count} employees."
-            response['data'] = {'total_employees': count}
         elif 'invoice' in query and ('count' in query or 'many' in query):
             count = Invoice.objects.count()
-            response['answer'] = f"You have {count} invoices."
-            response['data'] = {'total_invoices': count}
+            response['answer'] = f"You have {count} invoices in the system."
+        elif 'outstanding' in query or 'unpaid' in query:
+            total = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).aggregate(t=Sum('balance_due'))['t'] or 0
+            response['answer'] = f"Outstanding balance: ${float(total):,.2f}"
+        elif 'revenue' in query or 'income' in query:
+            total = Invoice.objects.filter(status='paid').aggregate(t=Sum('total'))['t'] or 0
+            response['answer'] = f"Total paid revenue: ${float(total):,.2f}"
         elif 'top' in query and 'customer' in query:
             top = Invoice.objects.values('customer__name').annotate(
                 total_revenue=Sum('total')
             ).filter(total_revenue__gt=0).order_by('-total_revenue')[:10]
-            response['answer'] = f"Your top {len(top)} customers by revenue:"
-            response['data'] = [{'customer': t['customer__name'], 'revenue': float(t['total_revenue'] or 0)} for t in top]
-        elif 'outstanding' in query or 'unpaid' in query:
-            total = Invoice.objects.filter(status__in=['sent', 'partial', 'overdue']).aggregate(t=Sum('balance_due'))['t'] or 0
-            response['answer'] = f"Outstanding balance: ${float(total):,.2f}"
-            response['data'] = {'outstanding': float(total)}
+            if top:
+                response['answer'] = f"Your top {len(top)} customers by revenue:"
+                response['data'] = [{'customer': t['customer__name'], 'revenue': float(t['total_revenue'] or 0)} for t in top]
+            else:
+                response['answer'] = "No invoice data yet. Import QuickBooks invoices to see revenue by customer."
         else:
-            response['answer'] = "Try: 'How many customers?', 'Top customers?', 'Total vendors?', 'How many employees?', 'Outstanding balance?'"
+            response['answer'] = "Try: 'How many customers?', 'How many vendors?', 'How many employees?', 'Outstanding balance?', 'Total revenue?'"
 
         return Response(response)
