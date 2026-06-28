@@ -31,6 +31,5 @@ urlpatterns = [
     path('', serve_app, name='home'),
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files (both development and production on Railway)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
