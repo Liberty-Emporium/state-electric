@@ -306,7 +306,9 @@ async function uploadFile() {
     }
 }
 
-async function renderDocuments(content) {
+async function renderDocuments() {
+    const content = document.getElementById('main-content') || document.getElementById('content');
+    if (!content) return;
     content.innerHTML = `<div class="page-header"><h2>📁 Documents</h2><p>Loading...</p></div>`;
     try {
         const res = await api('/api/files/');
