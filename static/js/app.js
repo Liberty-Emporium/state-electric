@@ -10,6 +10,7 @@ const NAV = [
     { id: 'invoices', label: 'Invoices', icon: '📄', perm: 'office' },
     { id: 'work-orders', label: 'Work Orders', icon: '🔧', perm: 'all' },
     { id: 'documents', label: 'Documents', icon: '📁', perm: 'all' },
+    { id: 'upload', label: 'Upload', icon: '⬆️', perm: 'office' },
     { id: 'timeclock', label: 'Time Clock', icon: '⏰', perm: 'employee' },
     { id: 'payroll', label: 'Payroll', icon: '💰', perm: 'office' },
     { id: 'reports', label: 'Reports', icon: '📈', perm: 'office' },
@@ -110,6 +111,7 @@ function navigate(page) {
         case 'invoices': renderInvoices(content); break;
         case 'work-orders': renderWorkOrders(content); break;
         case 'documents': renderDocuments(content); break;
+        case 'upload': renderUpload(content); break;
         case 'timeclock': renderTimeclock(content); break;
         case 'payroll': renderPayroll(content); break;
         case 'reports': renderReports(content); break;
@@ -253,6 +255,55 @@ async function renderWorkOrders(content) {
             <p style="color:var(--text-muted)">Total documents available: <strong style="color:var(--text)">9,125</strong> files including work order scans, invoices, permits, and bank deposit records.</p>
             <button class="btn btn-primary" onclick="navigate('documents')" style="margin-top:12px">View Documents</button>
         </div>`;
+}
+
+async function renderUpload(content) {
+    content.innerHTML = `
+        <div class="page-header"><h2>⬆️ Upload Documents</h2><p>Upload files to the document system</p></div>
+        <div class="card">
+            <h3 style="margin-bottom:16px">Upload Files</h3>
+            <input type="file" id="fileInput" style="margin:12px 0">
+            <div class="form-group"><label>Category</label>
+                <select id="categoryInput">
+                    <option value="invoice">Invoice</option>
+                    <option value="work_order">Work Order</option>
+                    <option value="estimate">Estimate</option>
+                    <option value="scan">Scan</option>
+                    <option value="permit">Permit</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="receipt">Receipt</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Folder</label><input type="text" id="folderInput" placeholder="e.g. Invoices 2024"></div>
+            <button class="btn btn-primary" onclick="uploadFile()">Upload</button>
+            <div id="uploadResult" style="margin-top:12px"></div>
+        </div>`;
+}
+
+async function uploadFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return alert('Select a file first');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', document.getElementById('categoryInput').value);
+    formData.append('folder', document.getElementById('folderInput').value);
+    
+    const res = await fetch('/upload/api/upload/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    
+    const resultDiv = document.getElementById('uploadResult');
+    if (data.success) {
+        resultDiv.innerHTML = '<span style="color:var(--success)">✅ Uploaded: ' + data.title + '</span>';
+        document.getElementById('fileInput').value = '';
+    } else {
+        resultDiv.innerHTML = '<span style="color:var(--danger)">❌ ' + (data.error || 'Upload failed') + '</span>';
+    }
 }
 
 async function renderDocuments(content) {
