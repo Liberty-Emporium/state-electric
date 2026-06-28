@@ -24,15 +24,22 @@
 
     <!-- Main App -->
     <div id="app-screen" class="screen">
+        <!-- Sidebar (desktop) / Bottom nav (mobile) -->
         <nav id="sidebar" class="sidebar">
             <div class="nav-logo">⚡ SEC</div>
-            <div class="nav-items" id="nav-items"></div>
+            <div class="nav-items" id="nav-items">
+                <!-- Filled by JS -->
+            </div>
             <div class="nav-footer">
                 <div class="nav-user" id="nav-user"></div>
                 <button class="btn-logout" onclick="doLogout()">Logout</button>
             </div>
         </nav>
-        <main id="main-content" class="main-content"></main>
+
+        <!-- Content area -->
+        <main id="main-content" class="main-content">
+            <!-- Filled by JS -->
+        </main>
     </div>
 
     <script src="/static/js/app.js"></script>

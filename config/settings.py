@@ -106,6 +106,9 @@ MEDIA_URL = '/media/'
 # Ensure media directory exists
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
+# Configure Django to serve media files in development
+# In production, nginx or similar should serve from MEDIA_ROOT
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework

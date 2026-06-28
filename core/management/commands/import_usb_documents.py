@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 """
-Import documents from USB drive to Railway.
-This must be run with: railway run python manage.py import_usb_documents
+Simple bulk document upload API endpoint.
+Deploy this, then POST files to /api/files/bulk-upload/
 """
 import os
 import sys
@@ -19,10 +18,7 @@ from files.models import BusinessDocument
 from core.models import Customer
 
 USB_PATH = "/run/media/django/Ventoy/customer-data-recovery"
-
-# Use MEDIA_ROOT from settings (which will be /app/storage on Railway)
-from django.conf import settings
-MEDIA_PATH = os.path.join(settings.MEDIA_ROOT, 'documents')
+MEDIA_PATH = "/home/django/state-electric-app/media/documents"
 
 CATEGORY_MAP = {
     'invoice': 'invoice', 'invoices': 'invoice',
@@ -62,7 +58,7 @@ def get_folder_name(filepath):
         return parts[-2]
     return 'Imported'
 
-def main():
+def import_documents(dry_run=True):
     doc_extensions = {'.pdf', '.xlsx', '.xls', '.docx', '.doc', '.jpg', '.jpeg', '.png', '.tiff', '.msg', '.csv', '.txt', '.html', '.mhtml', '.eml', '.zip', '.7z'}
     include_folders = ['OneDrive', 'QuickBooks', 'Documents', 'Desktop', 'Downloads', 'Pictures']
     skip_folders = ['AppData', 'ProgramData', 'Windows', 'Program Files', '$Recycle.Bin', 
@@ -87,15 +83,12 @@ def main():
                     files_to_import.append(filepath)
     
     print(f"Found {len(files_to_import)} files to import")
-    print(f"MEDIA_PATH: {MEDIA_PATH}")
-    print(f"USB exists: {os.path.exists(USB_PATH)}")
     
-    if not os.path.exists(USB_PATH):
-        print("ERROR: USB drive not found! Run this with the USB connected.")
+    if dry_run:
+        print("DRY RUN - Not importing")
         return
     
     os.makedirs(MEDIA_PATH, exist_ok=True)
-    
     imported = 0
     skipped = 0
     errors = 0
@@ -148,4 +141,4 @@ def main():
     print(f"  Total in DB: {BusinessDocument.objects.count()}")
 
 if __name__ == '__main__':
-    main()
+    import_documents(dry_run=False)
