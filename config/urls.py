@@ -24,7 +24,7 @@ urlpatterns = [
     path('api/payments/', include('invoicing.payment_urls')),
     path('api/time/', include('timeclock.urls')),
     path('api/files/', include('files.urls')),
-    path('api/files/upload/', include('files.upload_urls')),
+    path('upload/', include('files.upload_urls')),
     path('api/reports/', include('reports.urls')),
     path('api/contracts/', include('contracts.urls')),
     path('api/payroll/', include('payroll.urls')),
