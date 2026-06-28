@@ -21,7 +21,7 @@ class BusinessDocument(models.Model):
 
     title = models.CharField(max_length=200)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
-    file = models.FileField(upload_to='documents/%Y/%m/')
+    file = models.FileField(upload_to='documents/%Y/%m/', max_length=255)
     description = models.TextField(blank=True, default='')
     customer = models.ForeignKey('core.Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='documents')
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
