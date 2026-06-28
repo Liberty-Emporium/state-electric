@@ -307,17 +307,33 @@ async function uploadFile() {
 }
 
 async function renderDocuments(content) {
-    content.innerHTML = `
-        <div class="page-header"><h2>📁 Documents</h2><p>Business files and records</p></div>
-        <div class="grid">
-            <div class="card"><div class="card-title">📊 Spreadsheets</div><div class="card-value">5,214</div><div class="card-sub">Excel & CSV files</div></div>
-            <div class="card"><div class="card-title">📄 Documents</div><div class="card-value">2,616</div><div class="card-sub">PDF & Word files</div></div>
-            <div class="card"><div class="card-title">🖼️ Scans</div><div class="card-value">1,267</div><div class="card-sub">Scanned work orders & receipts</div></div>
-            <div class="card"><div class="card-title">📧 Emails</div><div class="card-value">16</div><div class="card-sub">Business correspondence</div></div>
-        </div>
-        <div class="card"><div class="card-title">📦 File Storage</div>
-            <p style="color:var(--text-muted)">Total: <strong>4.5 GB</strong> of business documents secured and backed up on USB drive and local server.</p>
-        </div>`;
+    content.innerHTML = `<div class="page-header"><h2>📁 Documents</h2><p>Loading...</p></div>`;
+    try {
+        const res = await api('/api/files/');
+        const data = await res.json();
+        const docs = data.results || [];
+        const counts = {};
+        docs.forEach(d => { counts[d.category] = (counts[d.category] || 0) + 1; });
+        content.innerHTML = `
+            <div class="page-header"><h2>📁 Documents</h2><p>${data.count} total files</p></div>
+            <div class="grid">
+                <div class="card"><div class="card-title">📄 Invoices</div><div class="card-value">${counts['invoice'] || 0}</div></div>
+                <div class="card"><div class="card-title">🔧 Work Orders</div><div class="card-value">${counts['work_order'] || 0}</div></div>
+                <div class="card"><div class="card-title">📝 Estimates</div><div class="card-value">${counts['estimate'] || 0}</div></div>
+                <div class="card"><div class="card-title">🖼️ Scans</div><div class="card-value">${counts['scan'] || 0}</div></div>
+                <div class="card"><div class="card-title">🛡️ Insurance</div><div class="card-value">${counts['insurance'] || 0}</div></div>
+                <div class="card"><div class="card-title">📋 Permits</div><div class="card-value">${counts['permit'] || 0}</div></div>
+            </div>
+            <h3 style="margin:20px 0 12px">Recent Documents</h3>
+            <div class="table-wrap"><table>
+                <thead><tr><th>Title</th><th>Category</th><th>Folder</th><th></th></tr></thead>
+                <tbody>${docs.slice(0, 50).map(d => `<tr><td>${d.title}</td><td>${d.category}</td><td>${d.folder || ''}</td><td><a href="${d.file}" target="_blank" class="btn btn-sm">📥</a></td></tr>`).join('')}</tbody>
+            </table></div>
+            ${data.count > 50 ? `<p style="text-align:center;color:var(--text-muted);margin-top:12px">Showing 50 of ${data.count} documents</p>` : ''}
+        `;
+    } catch (e) {
+        content.innerHTML = `<div class="page-header"><h2>📁 Documents</h2><p style="color:var(--danger)">Failed to load</p></div>`;
+    }
 }
 
 let clockInterval = null;
